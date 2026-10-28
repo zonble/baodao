@@ -76,7 +76,8 @@ class Game {
     // Background Photo per Level (每關一張專屬實景空照圖)
     this.stageBackgrounds = [
       'assets/taipei_101_panorama.jpg',      // 第一關：台北市遠景 (台北101與台北盆地全景)
-      'assets/tamsui_guandu_sunset.jpg'      // 第二關：淡水的夕陽與關渡大橋
+      'assets/tamsui_guandu_sunset.jpg',     // 第二關：淡水的夕陽與關渡大橋
+      'assets/hsinchu_science_park.jpg'      // 第三關：新竹科學園區 (晶圓科技廠空照景觀)
     ];
     this.bgImage = new Image();
     this.bgLoaded = false;
@@ -128,7 +129,8 @@ class Game {
     this.turrets = this.currentLevelData.turrets.map(t => new Turret(t.r, t.c));
     this.traps = this.currentLevelData.traps.map(tr => new FallingTrap(tr.r, tr.c));
 
-    this.boss = createBoss(this.currentLevelIndex, this.currentLevelData.boss.r, this.currentLevelData.boss.c);
+    this.bosses = createBoss(this.currentLevelIndex, this.currentLevelData.boss.r, this.currentLevelData.boss.c);
+    this.boss = this.bosses[0];
 
     this.bullets = [];
     this.particles = [];
@@ -148,13 +150,15 @@ class Game {
   updateLevelUI() {
     const lvlBtn = document.getElementById('lvl-toggle-btn');
     if (lvlBtn) {
-      lvlBtn.textContent = this.currentLevelIndex === 0 ? '🗺️ 第一關：台北' : '🗺️ 第二關：淡水';
+      if (this.currentLevelIndex === 0) lvlBtn.textContent = '🗺️ 第一關：台北';
+      else if (this.currentLevelIndex === 1) lvlBtn.textContent = '🗺️ 第二關：淡水';
+      else lvlBtn.textContent = '🗺️ 第三關：新竹';
     }
     const subtitle = document.querySelector('.subtitle');
     if (subtitle) {
-      subtitle.textContent = this.currentLevelIndex === 0
-        ? 'STAGE 1: 台北空照 (LEVEL 1)'
-        : 'STAGE 2: 淡水夕照 (LEVEL 2)';
+      if (this.currentLevelIndex === 0) subtitle.textContent = 'STAGE 1: 台北空照 (LEVEL 1)';
+      else if (this.currentLevelIndex === 1) subtitle.textContent = 'STAGE 2: 淡水夕照 (LEVEL 2)';
+      else subtitle.textContent = 'STAGE 3: 新竹科園 (LEVEL 3)';
     }
   }
 
@@ -179,7 +183,7 @@ class Game {
   nextStage() {
     sounds.ensureContext();
     sounds.startBgm();
-    this.currentLevelIndex = 1; // Advance to Level 2
+    this.currentLevelIndex = (this.currentLevelIndex + 1) % LEVELS.length;
     this.initLevel(true); // Keep score, lives, weapon level, bombs!
     this.state = 'PLAYING';
   }
@@ -317,9 +321,11 @@ class Game {
       }
     }
 
-    // Damage Boss if active
-    if (this.boss.alive && this.boss.active) {
-      this.boss.takeDamage(15, this.particles);
+    // Damage Bosses if active
+    for (const b of this.bosses) {
+      if (b.alive && b.active) {
+        b.takeDamage(15, this.particles);
+      }
     }
   }
 
@@ -340,7 +346,7 @@ class Game {
     }
 
     // Auto-scroll Camera
-    const bossStopX = (LEVEL_DATA.boss.c - 10) * TILE_SIZE; // Stop at ~4800px before boss
+    const bossStopX = (this.currentLevelData.boss.c - 10) * TILE_SIZE; // Stop at ~4800px before boss
     if (!this.cameraLocked) {
       this.cameraX += this.scrollSpeed * dt;
       if (this.cameraX >= bossStopX) {
@@ -358,7 +364,9 @@ class Game {
       }
       if (this.bossWarnTimer <= 0) {
         this.bossActive = true;
-        this.boss.activate(this.cameraX);
+        for (const b of this.bosses) {
+          b.activate(this.cameraX);
+        }
       }
     }
 
@@ -372,8 +380,10 @@ class Game {
       ...this.enemiesS.filter(e => e.alive && e.state === 'RUSHING'),
       ...this.turrets.filter(e => e.alive)
     ];
-    if (this.boss.alive && this.boss.active && !this.boss.dying) {
-      activeEnemies.push(this.boss);
+    for (const b of this.bosses) {
+      if (b.alive && b.active && !b.dying) {
+        activeEnemies.push(b);
+      }
     }
 
     // Update Player
@@ -477,25 +487,43 @@ class Game {
       tr.update(dt, this.cameraX, this.player, this.terrainGrid, this.particles);
     }
 
-    // Update Boss
-    this.boss.update(dt, this.cameraX, this.player, this.bullets, this.particles, () => {
-      // Boss Defeated callback
-      this.score += this.boss.scoreValue;
+    // Update Bosses
+    let allBossesDefeated = true;
+    for (const b of this.bosses) {
+      b.update(dt, this.cameraX, this.player, this.bullets, this.particles, () => {
+        // Individual Boss Defeated callback
+        this.score += b.scoreValue;
+        if (this.score > this.highScore) {
+          this.highScore = this.score;
+          localStorage.setItem('baodao_hi_score', this.highScore.toString());
+        }
+        this.floatingTexts.push(new FloatingText(b.x + b.w / 2, b.y + 40, `+${b.scoreValue}`, '#fbc531', 18));
+      });
+      if (b.alive) {
+        allBossesDefeated = false;
+      }
+    }
+
+    if (this.bossActive && allBossesDefeated) {
+      this.bossActive = false;
+      sounds.stopBgm();
       this.score += this.player.lives * 1000;
       this.score += this.player.bombs * 500;
-      sounds.stopBgm();
       if (this.score > this.highScore) {
         this.highScore = this.score;
         localStorage.setItem('baodao_hi_score', this.highScore.toString());
       }
       if (this.currentLevelIndex === 0) {
-        this.floatingTexts.push(new FloatingText(this.boss.x + this.boss.w / 2, this.boss.y + 40, `+${this.boss.scoreValue} STAGE 1 CLEAR!`, '#fbc531', 18));
+        this.floatingTexts.push(new FloatingText(this.cameraX + this.viewW / 2, 180, 'STAGE 1 CLEAR!', '#fbc531', 20));
+        this.state = 'STAGE_CLEAR';
+      } else if (this.currentLevelIndex === 1) {
+        this.floatingTexts.push(new FloatingText(this.cameraX + this.viewW / 2, 180, 'STAGE 2 CLEAR!', '#fbc531', 20));
         this.state = 'STAGE_CLEAR';
       } else {
-        this.floatingTexts.push(new FloatingText(this.boss.x + this.boss.w / 2, this.boss.y + 40, `+${this.boss.scoreValue} ALL CLEAR!`, '#fbc531', 20));
+        this.floatingTexts.push(new FloatingText(this.cameraX + this.viewW / 2, 180, '★★★ ALL STAGES CLEAR! ★★★', '#fbc531', 22));
         this.state = 'VICTORY';
       }
-    });
+    }
 
     // Update Drop Items
     for (const item of this.items) {
@@ -613,8 +641,10 @@ class Game {
     for (const ex of this.enemiesX) ex.draw(this.ctx, this.cameraX);
     for (const es of this.enemiesS) es.draw(this.ctx, this.cameraX);
 
-    // 6. Draw Boss
-    this.boss.draw(this.ctx, this.cameraX);
+    // 6. Draw Bosses
+    for (const b of this.bosses) {
+      b.draw(this.ctx, this.cameraX);
+    }
 
     // 7. Draw Drop Items
     for (const item of this.items) item.draw(this.ctx, this.cameraX);
@@ -748,16 +778,26 @@ class Game {
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
       this.ctx.fillRect(0, this.viewH / 2 - 40, this.viewW, 80);
 
+      let introTitle = '第一關：台北上空 (LEVEL 1)';
+      let introSub = 'STAGE 1: TAIPEI SKYLINE & 101';
+      if (this.currentLevelIndex === 1) {
+        introTitle = '第二關：淡水夕照 (LEVEL 2)';
+        introSub = 'STAGE 2: TAMSUI SUNSET & GUANDU BRIDGE';
+      } else if (this.currentLevelIndex === 2) {
+        introTitle = '第三關：新竹科技園區 (LEVEL 3)';
+        introSub = 'STAGE 3: HSINCHU SCIENCE PARK & FABS';
+      }
+
       this.ctx.fillStyle = '#00f2fe';
       this.ctx.shadowColor = '#00f2fe';
       this.ctx.shadowBlur = 10;
       this.ctx.font = 'bold 22px monospace';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText(isL1 ? '第一關：台北上空 (LEVEL 1)' : '第二關：淡水夕照 (LEVEL 2)', this.viewW / 2, this.viewH / 2 - 6);
+      this.ctx.fillText(introTitle, this.viewW / 2, this.viewH / 2 - 6);
 
       this.ctx.fillStyle = '#fbc531';
       this.ctx.font = '13px monospace';
-      this.ctx.fillText(isL1 ? 'STAGE 1: TAIPEI SKYLINE & 101' : 'STAGE 2: TAMSUI SUNSET & GUANDU BRIDGE', this.viewW / 2, this.viewH / 2 + 20);
+      this.ctx.fillText(introSub, this.viewW / 2, this.viewH / 2 + 20);
       this.ctx.restore();
     }
 
@@ -768,21 +808,71 @@ class Game {
       this.ctx.fillStyle = flash ? 'rgba(235, 77, 75, 0.45)' : 'rgba(0, 0, 0, 0.45)';
       this.ctx.fillRect(0, this.viewH / 2 - 45, this.viewW, 90);
 
+      let warnTitle = '⚠ 警報！超巨大珍珠奶茶來襲 ⚠';
+      let warnSub = 'WARNING: GIANT BOBA APPROACHING';
+      if (this.currentLevelIndex === 1) {
+        warnTitle = '⚠ 警報！超大淡水鐵蛋魔王來襲 ⚠';
+        warnSub = 'WARNING: GIANT TAMSUI IRON EGG APPROACHING';
+      } else if (this.currentLevelIndex === 2) {
+        warnTitle = '⚠ 警報！超大新竹貢丸雙子逼近中 ⚠';
+        warnSub = 'WARNING: TWIN GIANT HSINCHU MEATBALLS APPROACHING';
+      }
+
       this.ctx.fillStyle = '#ff4757';
       this.ctx.shadowColor = '#ff4757';
       this.ctx.shadowBlur = 12;
       this.ctx.font = 'bold 22px "Press Start 2P", monospace, sans-serif';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText(isL1 ? '⚠ 警報！超巨大珍珠奶茶來襲 ⚠' : '⚠ 警報！超大淡水鐵蛋魔王來襲 ⚠', this.viewW / 2, this.viewH / 2 - 8);
+      this.ctx.fillText(warnTitle, this.viewW / 2, this.viewH / 2 - 8);
 
       this.ctx.font = '14px monospace';
       this.ctx.fillStyle = '#ffffff';
-      this.ctx.fillText(isL1 ? 'WARNING: GIANT BOBA APPROACHING' : 'WARNING: GIANT TAMSUI IRON EGG APPROACHING', this.viewW / 2, this.viewH / 2 + 24);
+      this.ctx.fillText(warnSub, this.viewW / 2, this.viewH / 2 + 24);
       this.ctx.restore();
     }
 
-    // Boss Health Bar
-    if (this.boss.alive && this.boss.active) {
+    // Boss Health Bar(s)
+    if (this.bosses && this.bosses.length > 1) {
+      const anyActive = this.bosses.some(b => b.active);
+      if (anyActive) {
+        this.ctx.save();
+        const barW = 340;
+        const barH = 11;
+        const barX = (this.viewW - barW) / 2;
+
+        this.bosses.forEach((b, idx) => {
+          const barY = 32 + idx * 24;
+          this.ctx.fillStyle = b.role === 'top' ? '#ff7675' : '#74b9ff';
+          this.ctx.font = 'bold 11px monospace';
+          this.ctx.textAlign = 'left';
+          this.ctx.fillText(`${b.bossName} ${b.alive ? `[${Math.max(0, Math.ceil(b.hp))}/${b.maxHp}]` : '[已擊破]'}` , barX, barY - 4);
+
+          // Frame
+          this.ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+          this.ctx.fillRect(barX - 2, barY - 2, barW + 4, barH + 4);
+          this.ctx.strokeStyle = b.enraged ? '#ff4757' : (b.role === 'top' ? '#ff7675' : '#74b9ff');
+          this.ctx.lineWidth = 1.2;
+          this.ctx.strokeRect(barX - 2, barY - 2, barW + 4, barH + 4);
+
+          if (b.alive) {
+            const ratio = Math.max(0, b.hp / b.maxHp);
+            const grad = this.ctx.createLinearGradient(barX, barY, barX + barW, barY);
+            if (b.role === 'top') {
+              grad.addColorStop(0, '#ff4757');
+              grad.addColorStop(0.5, '#ffa502');
+              grad.addColorStop(1, '#ffbe76');
+            } else {
+              grad.addColorStop(0, '#0984e3');
+              grad.addColorStop(0.5, '#00cec9');
+              grad.addColorStop(1, '#81ecec');
+            }
+            this.ctx.fillStyle = grad;
+            this.ctx.fillRect(barX, barY, barW * ratio, barH);
+          }
+        });
+        this.ctx.restore();
+      }
+    } else if (this.boss && this.boss.alive && this.boss.active) {
       this.ctx.save();
       const barW = 380;
       const barH = 14;
@@ -832,10 +922,14 @@ class Game {
       this.ctx.textAlign = 'center';
       this.ctx.fillText('寶島風情畫', this.viewW / 2, 140);
 
+      let titleLevelStr = '第一關：台北上空 (LEVEL 1)';
+      if (this.currentLevelIndex === 1) titleLevelStr = '第二關：淡水夕照 (LEVEL 2)';
+      else if (this.currentLevelIndex === 2) titleLevelStr = '第三關：新竹科技園區 (LEVEL 3)';
+
       this.ctx.shadowBlur = 8;
       this.ctx.fillStyle = '#fbc531';
       this.ctx.font = '16px monospace';
-      this.ctx.fillText(isL1 ? '第一關：台北上空 (LEVEL 1)' : '第二關：淡水夕照 (LEVEL 2)', this.viewW / 2, 185);
+      this.ctx.fillText(titleLevelStr, this.viewW / 2, 185);
 
       this.ctx.fillStyle = '#ffffff';
       this.ctx.font = '14px monospace';
@@ -899,23 +993,25 @@ class Game {
       this.ctx.restore();
     }
 
-    // STAGE CLEAR SCREEN (Clear Stage 1 -> Proceed to Stage 2)
+    // STAGE CLEAR SCREEN (Clear Stage 1 -> Proceed to Stage 2, or Clear Stage 2 -> Proceed to Stage 3)
     if (this.state === 'STAGE_CLEAR') {
       this.ctx.save();
       this.ctx.fillStyle = 'rgba(5, 25, 45, 0.88)';
       this.ctx.fillRect(0, 0, this.viewW, this.viewH);
+
+      const isClearL1 = this.currentLevelIndex === 0;
 
       this.ctx.fillStyle = '#fbc531';
       this.ctx.shadowColor = '#fbc531';
       this.ctx.shadowBlur = 20;
       this.ctx.font = 'bold 32px monospace';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText('★ 第一關 突破成功！★', this.viewW / 2, 115);
+      this.ctx.fillText(isClearL1 ? '★ 第一關 突破成功！★' : '★ 第二關 突破成功！★', this.viewW / 2, 115);
 
       this.ctx.shadowBlur = 0;
       this.ctx.fillStyle = '#00d2d3';
       this.ctx.font = '16px monospace';
-      this.ctx.fillText('STAGE 1 CLEAR - MISSION COMPLETE', this.viewW / 2, 155);
+      this.ctx.fillText(isClearL1 ? 'STAGE 1 CLEAR - MISSION COMPLETE' : 'STAGE 2 CLEAR - MISSION COMPLETE', this.viewW / 2, 155);
 
       this.ctx.fillStyle = '#ffffff';
       this.ctx.font = '15px monospace';
@@ -929,14 +1025,19 @@ class Game {
       this.ctx.fillText('【 下一關情報 】', this.viewW / 2, 305);
       this.ctx.fillStyle = '#fbc531';
       this.ctx.font = '14px monospace';
-      this.ctx.fillText('第二關場景：淡水的夕陽與關渡大橋', this.viewW / 2, 332);
-      this.ctx.fillText('守關魔王：超大淡水鐵蛋', this.viewW / 2, 356);
+      if (isClearL1) {
+        this.ctx.fillText('第二關場景：淡水的夕陽與關渡大橋', this.viewW / 2, 332);
+        this.ctx.fillText('守關魔王：超大淡水鐵蛋', this.viewW / 2, 356);
+      } else {
+        this.ctx.fillText('第三關場景：新竹科學園區科技廠房', this.viewW / 2, 332);
+        this.ctx.fillText('守關魔王：超大新竹貢丸 x2 (彈力雙子)', this.viewW / 2, 356);
+      }
 
       const blink = Math.floor(Date.now() / 350) % 2 === 0;
       if (blink) {
         this.ctx.fillStyle = '#00f2fe';
         this.ctx.font = 'bold 18px monospace';
-        this.ctx.fillText('▶ 按 空白鍵 或 點擊出擊 前往第二關 ◀', this.viewW / 2, 415);
+        this.ctx.fillText(`▶ 按 空白鍵 或 點擊出擊 前往第${isClearL1 ? '二' : '三'}關 ◀`, this.viewW / 2, 415);
       }
       this.ctx.restore();
     }
@@ -952,15 +1053,15 @@ class Game {
       this.ctx.shadowBlur = 22;
       this.ctx.font = 'bold 34px monospace';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText('★★ 全破祝賀！全島制霸！★★', this.viewW / 2, 115);
+      this.ctx.fillText('★★★ 全島制霸！寶島風情畫全破！★★★', this.viewW / 2, 115);
 
       this.ctx.shadowBlur = 0;
       this.ctx.fillStyle = '#00d2d3';
       this.ctx.font = '16px monospace';
-      this.ctx.fillText('ALL STAGES CLEARED - CONGRATULATIONS!', this.viewW / 2, 155);
+      this.ctx.fillText('ALL 3 STAGES CLEARED - CONGRATULATIONS!', this.viewW / 2, 155);
 
       this.ctx.fillStyle = '#ffffff';
-      this.ctx.font = '16px monospace';
+      this.ctx.font = '15px monospace';
       this.ctx.fillText(`最終作戰總分: ${this.score}`, this.viewW / 2, 215);
       this.ctx.fillText(`總擊墜敵機: ${this.enemiesDefeated} 架`, this.viewW / 2, 250);
       this.ctx.fillText(`通關殘存戰機獎勵: +${this.player.lives * 1000} PTS`, this.viewW / 2, 285);

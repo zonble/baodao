@@ -157,6 +157,51 @@ export class Bullet {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
+      } else if (this.type === 'celery') {
+        // Fresh Green Celery Fleck (芹菜末破片彈)
+        ctx.translate(screenX, this.y);
+        ctx.rotate(Date.now() * 0.007);
+        ctx.fillStyle = '#2ed573';
+        ctx.shadowColor = '#7bed9f';
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 6, 3.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#1e824c';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      } else if (this.type === 'broth') {
+        // Glowing Bone Broth Plasma (大骨高湯濃縮彈)
+        ctx.fillStyle = '#f6e58d';
+        ctx.shadowColor = '#f9ca24';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(screenX, this.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffbe76';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(screenX, this.y, 11, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(screenX - 2, this.y - 2, 3, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (this.type === 'pepper') {
+        // Coarse Black Pepper Spark (黑胡椒碎火花彈)
+        ctx.fillStyle = '#2f3542';
+        ctx.shadowColor = '#ff4757';
+        ctx.shadowBlur = 5;
+        ctx.beginPath();
+        ctx.arc(screenX, this.y, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ff6b81';
+        ctx.beginPath();
+        ctx.arc(screenX, this.y, 2, 0, Math.PI * 2);
+        ctx.fill();
       } else {
         // Standard energy bullet
         ctx.fillStyle = '#ff4757';
@@ -1041,6 +1086,7 @@ export class Boss {
     this.dying = false;
     this.dyingTimer = 3.2;
     this.scoreValue = 6000;
+    this.bossName = '巨型珍珠奶茶魔王 - 寶島波霸號';
     this.strawFlash = 0;
 
     // Generate fixed random positions for boba pearls inside the cup bottom
@@ -1841,8 +1887,410 @@ export class IronEggBoss {
 
 // Boss Factory
 export function createBoss(stageIndex, r, c) {
-  if (stageIndex === 1) {
-    return new IronEggBoss(r, c);
+  if (stageIndex === 2) {
+    const b1 = new GongwanBoss(0, c, 'top');
+    const b2 = new GongwanBoss(3, c, 'bottom');
+    b1.twin = b2;
+    b2.twin = b1;
+    return [b1, b2];
   }
-  return new BobaBoss(r, c);
+  if (stageIndex === 1) {
+    return [new IronEggBoss(r, c)];
+  }
+  return [new BobaBoss(r, c)];
+}
+
+// Stage 3 Boss: 超大新竹貢丸雙子 (TWIN GIANT HSINCHU MEATBALL BOSSES)
+export class GongwanBoss {
+  constructor(r, c, role = 'top') {
+    this.role = role; // 'top' or 'bottom'
+    this.targetX = c * TILE_SIZE - 40;
+    this.x = this.targetX + 350;
+    this.baseY = role === 'top' ? 70 : 310;
+    this.y = this.baseY;
+    this.w = 130;
+    this.h = 130;
+    this.radius = 58;
+    this.maxHp = 140;
+    this.hp = 140;
+    this.alive = true;
+    this.active = false;
+    this.entering = false;
+    this.timer = role === 'top' ? 0 : Math.PI;
+    this.attackTimer = role === 'top' ? 1.6 : 2.6;
+    this.attackPhase = 1;
+    this.enraged = false;
+    this.dying = false;
+    this.dyingTimer = 3.5;
+    this.scoreValue = 6000;
+    this.bossName = role === 'top' ? '新竹超大貢丸 (彈力壹號)' : '新竹超大貢丸 (爆汁貳號)';
+    this.twin = null;
+
+    // Celery and pepper flecks
+    this.specks = [];
+    for (let i = 0; i < 18; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Math.random() * (this.radius - 12);
+      this.specks.push({
+        x: Math.cos(angle) * dist,
+        y: Math.sin(angle) * dist,
+        type: i % 3 === 0 ? 'celery' : 'pepper',
+        size: i % 3 === 0 ? 3.5 : 2,
+        rot: Math.random() * Math.PI
+      });
+    }
+  }
+
+  activate(camX) {
+    this.active = true;
+    this.entering = true;
+    this.x = camX + 850 + (this.role === 'bottom' ? 50 : 0);
+    sounds.playWarning();
+  }
+
+  setEnraged() {
+    if (this.enraged || !this.alive || this.dying) return;
+    this.enraged = true;
+    this.bossName = this.role === 'top' ? '新竹超大貢丸 (彈力壹號·暴走 200%)' : '新竹超大貢丸 (爆汁貳號·暴走 200%)';
+    sounds.playWarning();
+  }
+
+  update(dt, camX, player, bullets, particles, onDefeated) {
+    if (!this.alive || !this.active) return;
+
+    if (this.dying) {
+      this.dyingTimer -= dt;
+      // High-intensity meatball broth explosion
+      if (Math.random() < 0.8) {
+        sounds.playExplosion(Math.random() < 0.4);
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 260,
+          (Math.random() - 0.5) * 260,
+          Math.random() < 0.5 ? '#f9ca24' : '#fff5eb',
+          6,
+          0.6
+        ));
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 200,
+          (Math.random() - 0.5) * 200,
+          '#2ecc71',
+          4,
+          0.5
+        ));
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 220,
+          (Math.random() - 0.5) * 220,
+          '#2c3e50',
+          3,
+          0.7
+        ));
+      }
+      if (this.dyingTimer <= 0) {
+        this.alive = false;
+        sounds.playVictory();
+        if (onDefeated) onDefeated();
+      }
+      return;
+    }
+
+    // Entrance slide animation
+    if (this.entering) {
+      this.x -= 140 * dt;
+      const targetScreenX = this.role === 'top' ? 610 : 640;
+      if (this.x <= camX + targetScreenX) {
+        this.x = camX + targetScreenX;
+        this.entering = false;
+      }
+      return;
+    }
+
+    this.timer += dt;
+
+    // Movement: bouncy harmonic oscillation
+    const bounceSpeed = this.enraged ? 3.6 : 2.2;
+    const bounceAmp = this.role === 'top' ? 40 : 50;
+    this.y = this.baseY + Math.sin(this.timer * bounceSpeed) * bounceAmp;
+
+    // Check enrage state (< 50% HP)
+    if (this.hp <= this.maxHp * 0.5 && !this.enraged) {
+      this.setEnraged();
+      for (let i = 0; i < 35; i++) {
+        particles.push(new Particle(
+          this.x + this.w / 2,
+          this.y + this.h / 2,
+          (Math.random() - 0.5) * 350,
+          (Math.random() - 0.5) * 350,
+          Math.random() < 0.5 ? '#f9ca24' : '#fff5eb',
+          5,
+          0.6
+        ));
+      }
+    }
+
+    // Attacks
+    this.attackTimer -= dt;
+    if (this.attackTimer <= 0) {
+      this.executeAttack(player, bullets, particles);
+      this.attackTimer = this.enraged ? 1.2 : 2.2;
+    }
+  }
+
+  executeAttack(player, bullets, particles) {
+    sounds.playEnemyLaser();
+    const coreX = this.x + 20;
+    const coreY = this.y + this.h / 2;
+
+    this.attackPhase = (this.attackPhase % 3) + 1;
+
+    if (this.role === 'top') {
+      // Top Meatball: 彈力壹號 (High mobility, Celery spread, Pepper barrage)
+      if (this.attackPhase === 1) {
+        // 1. 芹菜末扇形彈幕 (Celery Arc Shot)
+        const count = this.enraged ? 7 : 5;
+        const spread = 0.8;
+        const baseA = Math.atan2(player.y - coreY, player.x - coreX);
+        for (let i = 0; i < count; i++) {
+          const offset = ((i / (count - 1)) - 0.5) * spread;
+          const a = baseA + offset;
+          const speed = 190;
+          bullets.push(new Bullet(coreX, coreY, Math.cos(a) * speed, Math.sin(a) * speed, true, 1, 'celery'));
+        }
+      } else if (this.attackPhase === 2) {
+        // 2. 白胡椒高速雙發 (Pepper Darts)
+        for (let i = 0; i < (this.enraged ? 4 : 2); i++) {
+          const offsetAngle = (i - 0.5) * 0.15;
+          const a = Math.atan2(player.y - coreY, player.x - coreX) + offsetAngle;
+          bullets.push(new Bullet(coreX, coreY, Math.cos(a) * 240, Math.sin(a) * 240, true, 1, 'pepper'));
+        }
+      } else {
+        // 3. 彈力高湯全方位迸發 (Broth Burst)
+        const count = this.enraged ? 10 : 8;
+        for (let i = 0; i < count; i++) {
+          const a = (i / count) * Math.PI * 2 + this.timer;
+          bullets.push(new Bullet(coreX, coreY, Math.cos(a) * 160, Math.sin(a) * 160, true, 1, 'broth'));
+        }
+      }
+    } else {
+      // Bottom Meatball: 爆汁貳號 (Heavy broth waves, Pepper spiral, Scalding snipes)
+      if (this.attackPhase === 1) {
+        // 1. 爆汁大骨高湯波浪 (Broth Wave)
+        const count = this.enraged ? 8 : 6;
+        const baseA = Math.PI;
+        for (let i = 0; i < count; i++) {
+          const a = baseA + ((i / (count - 1)) - 0.5) * 0.9;
+          const speed = 175;
+          bullets.push(new Bullet(coreX, coreY, Math.cos(a) * speed, Math.sin(a) * speed, true, 1, 'broth'));
+        }
+      } else if (this.attackPhase === 2) {
+        // 2. 黑胡椒漩渦彈 (Pepper Spiral)
+        const count = this.enraged ? 12 : 8;
+        for (let i = 0; i < count; i++) {
+          const a = (i / count) * Math.PI * 2;
+          bullets.push(new Bullet(coreX, coreY, Math.cos(a) * 180, Math.sin(a) * 180, true, 1, 'pepper'));
+        }
+      } else {
+        // 3. 爆汁高壓熱湯直擊 (Hot Broth Stream)
+        const a = Math.atan2(player.y - coreY, player.x - coreX);
+        bullets.push(new Bullet(coreX, coreY, Math.cos(a) * 250, Math.sin(a) * 250, true, 1.5, 'broth'));
+        bullets.push(new Bullet(coreX, coreY, Math.cos(a + 0.2) * 210, Math.sin(a + 0.2) * 210, true, 1, 'celery'));
+        bullets.push(new Bullet(coreX, coreY, Math.cos(a - 0.2) * 210, Math.sin(a - 0.2) * 210, true, 1, 'celery'));
+      }
+    }
+  }
+
+  takeDamage(amount, particles) {
+    if (!this.active || this.entering || this.dying) return false;
+    this.hp -= amount;
+    sounds.playHit();
+
+    // Broth and pork flecks
+    for (let i = 0; i < 4; i++) {
+      particles.push(new Particle(
+        this.x + 20 + Math.random() * (this.w - 40),
+        this.y + 20 + Math.random() * (this.h - 40),
+        (Math.random() - 0.5) * 120,
+        (Math.random() - 0.5) * 120,
+        Math.random() < 0.5 ? '#fff5eb' : '#ebd4b7',
+        3.5,
+        0.25
+      ));
+    }
+
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.dying = true;
+      this.dyingTimer = 3.2;
+      sounds.playExplosion(true);
+      if (this.twin && this.twin.alive && !this.twin.dying) {
+        this.twin.setEnraged();
+      }
+      return true;
+    }
+    return false;
+  }
+
+  draw(ctx, camX) {
+    if (!this.alive || !this.active) return;
+    const sx = this.x - camX;
+    ctx.save();
+    ctx.translate(sx + this.w / 2, this.y + this.h / 2);
+
+    // Squash & Stretch for bouncy pork meatball
+    const squash = Math.sin(this.timer * (this.enraged ? 7 : 4)) * (this.enraged ? 0.08 : 0.05);
+    ctx.scale(1 + squash, 1 - squash);
+
+    // 1. Rising Broth Steam (大骨湯熱氣)
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 2.5;
+    const steamT = (this.timer * 3) % 2;
+    ctx.beginPath();
+    ctx.moveTo(-15, -this.radius + 5);
+    ctx.bezierCurveTo(-25, -this.radius - 15, -5, -this.radius - 25, -15, -this.radius - 35 - steamT * 10);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(15, -this.radius + 5);
+    ctx.bezierCurveTo(25, -this.radius - 15, 5, -this.radius - 25, 15, -this.radius - 35 - steamT * 10);
+    ctx.stroke();
+    ctx.restore();
+
+    // 2. Meatball Body Shadow / Aura
+    ctx.save();
+    ctx.shadowColor = this.enraged ? 'rgba(255, 71, 87, 0.75)' : 'rgba(249, 202, 36, 0.55)';
+    ctx.shadowBlur = this.enraged ? 20 : 14;
+
+    const meatGrad = ctx.createRadialGradient(-15, -15, 10, 0, 0, this.radius);
+    if (this.enraged) {
+      meatGrad.addColorStop(0, '#fff5eb');
+      meatGrad.addColorStop(0.3, '#fbc531');
+      meatGrad.addColorStop(0.7, '#e74c3c');
+      meatGrad.addColorStop(1, '#c0392b');
+    } else {
+      meatGrad.addColorStop(0, '#ffffff');
+      meatGrad.addColorStop(0.25, '#fff7ed');
+      meatGrad.addColorStop(0.65, '#ebd4b7');
+      meatGrad.addColorStop(1, '#ca9e72');
+    }
+
+    ctx.fillStyle = meatGrad;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = this.enraged ? '#ff4757' : '#ba8655';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+
+    // 3. Celery flecks & pepper specks on surface
+    for (const sp of this.specks) {
+      ctx.save();
+      ctx.translate(sp.x, sp.y);
+      ctx.rotate(sp.rot);
+      if (sp.type === 'celery') {
+        ctx.fillStyle = '#2ecc71';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, sp.size * 1.5, sp.size * 0.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = '#2c3e50';
+        ctx.beginPath();
+        ctx.arc(0, 0, sp.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // 4. Chef Headband (鉢卷)
+    ctx.save();
+    const bandY = -18;
+    ctx.fillStyle = this.role === 'top' ? '#eb4d4b' : '#30336b';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(-this.radius + 4, bandY - 8, (this.radius - 4) * 2, 16);
+    ctx.strokeRect(-this.radius + 4, bandY - 8, (this.radius - 4) * 2, 16);
+
+    // Headband Kanji Emblem
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.role === 'top' ? '彈' : '汁', 0, bandY);
+    ctx.restore();
+
+    // 5. Cute/Fierce Anime Eyes & Face
+    const eyeY = 12;
+    if (this.enraged) {
+      // Blazing Red Battle Eyes
+      ctx.fillStyle = '#ff3838';
+      ctx.shadowColor = '#ff3838';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.moveTo(-28, eyeY - 6);
+      ctx.lineTo(-8, eyeY + 3);
+      ctx.lineTo(-24, eyeY + 6);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(28, eyeY - 6);
+      ctx.lineTo(8, eyeY + 3);
+      ctx.lineTo(24, eyeY + 6);
+      ctx.closePath();
+      ctx.fill();
+
+      // Roaring steam mouth
+      ctx.strokeStyle = '#ff3838';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(0, 32, 10, 0, Math.PI, true);
+      ctx.stroke();
+    } else {
+      // Expressive Determined Eyes
+      ctx.fillStyle = '#2d3436';
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 3;
+      ctx.beginPath();
+      ctx.ellipse(-18, eyeY, 6, 9, 0, 0, Math.PI * 2);
+      ctx.ellipse(18, eyeY, 6, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eye White Reflections
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-20, eyeY - 3, 2.5, 0, Math.PI * 2);
+      ctx.arc(16, eyeY - 3, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Blushing Cheeks
+      ctx.fillStyle = 'rgba(255, 118, 117, 0.45)';
+      ctx.beginPath();
+      ctx.ellipse(-26, eyeY + 12, 7, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(26, eyeY + 12, 7, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Confident Gourmet Smile
+      ctx.strokeStyle = '#2d3436';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 26, 7, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+    }
+
+    // 6. Title Label Above Meatball
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = this.role === 'top' ? '#ff7675' : '#74b9ff';
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(this.role === 'top' ? '★ 新竹彈力貢丸 ★' : '★ 新竹爆汁貢丸 ★', 0, -this.radius - 8);
+
+    ctx.restore();
+  }
 }
