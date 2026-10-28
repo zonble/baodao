@@ -73,27 +73,14 @@ class Game {
       });
     }
 
-    // Background Photos per Level
-    this.levelBackgrounds = [
-      // Level 1: Taipei
-      [
-        { name: '台北101盆地全景', src: 'assets/taipei_101_panorama.jpg' },
-        { name: '松山機場與101遠眺', src: 'assets/taipei_airport_101.jpg' },
-        { name: '台北天際線日景', src: 'assets/taipei_skyline_101_day.jpg' }
-      ],
-      // Level 2: Tamsui & Guandu Bridge
-      [
-        { name: '關渡大橋與淡水夕陽', src: 'assets/tamsui_guandu_sunset.jpg' },
-        { name: '淡水河口金色夕照', src: 'assets/tamsui_sunset.jpg' },
-        { name: '關渡大橋紅色鋼拱', src: 'assets/guandu_bridge.jpg' }
-      ]
+    // Background Photo per Level (每關一張專屬實景空照圖)
+    this.stageBackgrounds = [
+      'assets/taipei_101_panorama.jpg',      // 第一關：台北市遠景 (台北101與台北盆地全景)
+      'assets/tamsui_guandu_sunset.jpg'      // 第二關：淡水的夕陽與關渡大橋
     ];
-
-    this.bgIndex = 0;
-    this.bgImages = this.levelBackgrounds[this.currentLevelIndex];
     this.bgImage = new Image();
     this.bgLoaded = false;
-    this.loadCurrentBackground();
+    this.loadStageBackground();
 
     this.setupInputs();
     this.initLevel(false);
@@ -104,9 +91,7 @@ class Game {
 
   initLevel(keepPlayerStats = false) {
     this.currentLevelData = LEVELS[this.currentLevelIndex];
-    this.bgImages = this.levelBackgrounds[this.currentLevelIndex];
-    this.bgIndex = 0;
-    this.loadCurrentBackground();
+    this.loadStageBackground();
 
     this.worldCols = this.currentLevelData.cols;
     this.worldRows = this.currentLevelData.rows;
@@ -165,10 +150,6 @@ class Game {
     if (lvlBtn) {
       lvlBtn.textContent = this.currentLevelIndex === 0 ? '🗺️ 第一關：台北' : '🗺️ 第二關：淡水';
     }
-    const bgBtn = document.getElementById('bg-toggle-btn');
-    if (bgBtn && this.bgImages[this.bgIndex]) {
-      bgBtn.textContent = `🏙️ ${this.bgImages[this.bgIndex].name}`;
-    }
     const subtitle = document.querySelector('.subtitle');
     if (subtitle) {
       subtitle.textContent = this.currentLevelIndex === 0
@@ -177,19 +158,12 @@ class Game {
     }
   }
 
-  loadCurrentBackground() {
+  loadStageBackground() {
     this.bgLoaded = false;
-    const cur = this.bgImages[this.bgIndex];
-    this.bgImage.src = cur.src;
+    this.bgImage.src = this.stageBackgrounds[this.currentLevelIndex];
     this.bgImage.onload = () => {
       this.bgLoaded = true;
     };
-  }
-
-  nextBackground() {
-    this.bgIndex = (this.bgIndex + 1) % this.bgImages.length;
-    this.loadCurrentBackground();
-    return this.bgImages[this.bgIndex].name;
   }
 
   startNewGame() {
@@ -303,15 +277,6 @@ class Game {
         sounds.ensureContext();
         const isMuted = sounds.toggleMute();
         soundBtn.textContent = isMuted ? '🔇 靜音' : '🔊 音效';
-      });
-    }
-
-    const bgBtn = document.getElementById('bg-toggle-btn');
-    if (bgBtn) {
-      bgBtn.addEventListener('click', () => {
-        const nextName = this.nextBackground();
-        bgBtn.textContent = `🏙️ ${nextName}`;
-        this.floatingTexts.push(new FloatingText(this.cameraX + 400, 80, `背景切換：${nextName}`, '#00f2fe', 16));
       });
     }
 
