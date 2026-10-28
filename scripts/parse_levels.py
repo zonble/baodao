@@ -69,7 +69,21 @@ def parse_level_file(filepath: str) -> dict:
                     box_w = 0
                     for c_ch in row[i:end_i+1]:
                         box_w += display_width(c_ch)
-                    boss_boxes.append({"r": r, "c": col, "w": box_w, "h": 3})
+                    # Find matching └ downwards at same column
+                    box_h = 3
+                    for down_r in range(r + 1, len(grid)):
+                        down_row = grid[down_r]
+                        d_col = 0
+                        found_bottom = False
+                        for d_ch in down_row:
+                            if d_col == col and d_ch == "└":
+                                box_h = down_r - r + 1
+                                found_bottom = True
+                                break
+                            d_col += display_width(d_ch)
+                        if found_bottom:
+                            break
+                    boss_boxes.append({"r": r, "c": col, "w": box_w, "h": box_h})
             col += w
             i += 1
 
@@ -80,6 +94,12 @@ def parse_level_file(filepath: str) -> dict:
     traps = []
     playerStart = {"r": 4, "c": 1}
 
+    def in_boss_box(r_pos, c_pos):
+        for b in boss_boxes:
+            if b["r"] <= r_pos < b["r"] + b["h"] and b["c"] <= c_pos < b["c"] + b["w"]:
+                return True
+        return False
+
     # Extract entities
     for r, row in enumerate(grid):
         col = 0
@@ -87,6 +107,11 @@ def parse_level_file(filepath: str) -> dict:
         while i < len(row):
             ch = row[i]
             w = display_width(ch)
+
+            if in_boss_box(r, col):
+                col += w
+                i += 1
+                continue
 
             if ch == "-" and i + 1 < len(row) and row[i+1] == ">":
                 playerStart = {"r": r, "c": col}

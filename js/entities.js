@@ -270,6 +270,45 @@ export class Bullet {
         ctx.beginPath();
         ctx.arc(screenX, this.y, 2.5, 0, Math.PI * 2);
         ctx.fill();
+      } else if (this.type === 'bauble') {
+        // Christmas Bauble Ornament (耶誕燈球節慶彈)
+        const colors = ['#eb4d4b', '#fbc531', '#2ecc71', '#00d2d3', '#e056fd'];
+        const c = colors[Math.abs(Math.floor(this.x + this.y)) % colors.length];
+        ctx.fillStyle = c;
+        ctx.shadowColor = c;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(screenX, this.y, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Shiny specular dot
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(screenX - 2.5, this.y - 2.5, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (this.type === 'star_spark') {
+        // Prismatic Twinkling Star (星芒光雕旋轉彈)
+        ctx.translate(screenX, this.y);
+        ctx.rotate(Date.now() * 0.008);
+        ctx.fillStyle = '#fbc531';
+        ctx.shadowColor = '#ffa502';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(0, -9);
+        ctx.lineTo(3, -3);
+        ctx.lineTo(9, 0);
+        ctx.lineTo(3, 3);
+        ctx.lineTo(0, 9);
+        ctx.lineTo(-3, 3);
+        ctx.lineTo(-9, 0);
+        ctx.lineTo(-3, -3);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+        ctx.fill();
       } else {
         // Standard energy bullet
         ctx.fillStyle = '#ff4757';
@@ -1955,6 +1994,9 @@ export class IronEggBoss {
 
 // Boss Factory
 export function createBoss(stageIndex, r, c) {
+  if (stageIndex === 5) {
+    return [new ChristmasTreeBoss(r, c)];
+  }
   if (stageIndex === 4) {
     return [new GiantAirlinerBoss(r, c)];
   }
@@ -3129,6 +3171,317 @@ export class GiantAirlinerBoss {
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('★ 桃園航空城 · 巨無霸客機 ★', this.w / 2, 8);
+
+    ctx.restore();
+  }
+}
+
+// Stage 6 Boss: 超大光雕耶誕樹魔王 - 新北竹筍號 (GIANT CHRISTMAS TREE BOSS)
+export class ChristmasTreeBoss {
+  constructor(r, c) {
+    this.targetX = c * TILE_SIZE - 40;
+    this.x = this.targetX + 350;
+    this.y = 15;
+    this.w = 210;
+    this.h = 445;
+    this.maxHp = 300;
+    this.hp = 300;
+    this.alive = true;
+    this.active = false;
+    this.entering = false;
+    this.baseY = this.y;
+    this.timer = 0;
+    this.attackTimer = 1.6;
+    this.attackPhase = 1;
+    this.enraged = false;
+    this.dying = false;
+    this.dyingTimer = 4.0;
+    this.scoreValue = 15000;
+    this.bossName = '超大光雕耶誕樹魔王 - 新北竹筍號';
+
+    this.projectors = [
+      { yOffset: 45, angle: 0 },
+      { yOffset: 140, angle: Math.PI * 0.5 },
+      { yOffset: 250, angle: Math.PI },
+      { yOffset: 370, angle: Math.PI * 1.5 }
+    ];
+
+    this.fairyLights = [];
+    for (let i = 0; i < 36; i++) {
+      const tierRatio = (i / 36);
+      const halfW = 20 + tierRatio * 75;
+      this.fairyLights.push({
+        rx: (Math.random() - 0.5) * halfW * 1.8,
+        ry: 40 + tierRatio * 360 + (Math.random() - 0.5) * 15,
+        colorIdx: i % 5,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  activate(camX) {
+    this.active = true;
+    this.entering = true;
+    this.x = camX + 850;
+    sounds.playWarning();
+  }
+
+  update(dt, camX, player, bullets, particles, onDefeated) {
+    if (!this.alive || !this.active) return;
+
+    if (this.dying) {
+      this.dyingTimer -= dt;
+      if (Math.random() < 0.9) {
+        sounds.playExplosion(Math.random() < 0.4);
+        const colors = ['#fbc531', '#ff4757', '#2ecc71', '#00f2fe', '#e056fd'];
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 320,
+          (Math.random() - 0.5) * 320,
+          colors[Math.floor(Math.random() * colors.length)],
+          6,
+          0.7
+        ));
+      }
+      if (this.dyingTimer <= 0) {
+        this.alive = false;
+        sounds.playVictory();
+        if (onDefeated) onDefeated();
+      }
+      return;
+    }
+
+    if (this.entering) {
+      this.x -= 140 * dt;
+      if (this.x <= camX + 580) {
+        this.x = camX + 580;
+        this.entering = false;
+      }
+      return;
+    }
+
+    this.timer += dt;
+
+    const rotSpeed = this.enraged ? 3.5 : 2.0;
+    for (const p of this.projectors) {
+      p.angle += rotSpeed * dt;
+    }
+
+    if (this.hp <= this.maxHp * 0.5 && !this.enraged) {
+      this.enraged = true;
+      this.bossName = '超大光雕耶誕樹魔王 - 新北竹筍號 [跨年光雕秀 200%]';
+      sounds.playWarning();
+      for (let i = 0; i < 50; i++) {
+        particles.push(new Particle(
+          this.x + this.w / 2,
+          this.y + 40,
+          (Math.random() - 0.5) * 400,
+          (Math.random() - 0.5) * 400,
+          Math.random() < 0.5 ? '#fbc531' : '#00f2fe',
+          6,
+          0.8
+        ));
+      }
+    }
+
+    this.attackTimer -= dt;
+    if (this.attackTimer <= 0) {
+      this.executeAttack(player, bullets, particles);
+      this.attackTimer = this.enraged ? 1.0 : 1.7;
+    }
+  }
+
+  executeAttack(player, bullets, particles) {
+    sounds.playEnemyLaser();
+    this.attackPhase = (this.attackPhase % 3) + 1;
+    const starX = this.x + 30;
+    const starY = this.y + 35;
+
+    if (this.attackPhase === 1) {
+      // 1. 星芒雷射光雕
+      const count = this.enraged ? 9 : 7;
+      const baseA = Math.atan2(player.y - starY, player.x - starX);
+      for (let i = 0; i < count; i++) {
+        const offset = ((i / (count - 1)) - 0.5) * 0.85;
+        const a = baseA + offset;
+        const speed = 210;
+        bullets.push(new Bullet(starX, starY, Math.cos(a) * speed, Math.sin(a) * speed, true, 1, 'star_spark'));
+      }
+    } else if (this.attackPhase === 2) {
+      // 2. 全彩節慶光珠陣
+      for (const p of this.projectors) {
+        const pX = this.x + 40;
+        const pY = this.y + p.yOffset;
+        const a = Math.atan2(player.y - pY, player.x - pX);
+        bullets.push(new Bullet(pX, pY, Math.cos(a) * 190, Math.sin(a) * 190, true, 1, 'bauble'));
+        bullets.push(new Bullet(pX, pY, Math.cos(a + 0.28) * 170, Math.sin(a + 0.28) * 170, true, 1, 'bauble'));
+        bullets.push(new Bullet(pX, pY, Math.cos(a - 0.28) * 170, Math.sin(a - 0.28) * 170, true, 1, 'bauble'));
+      }
+    } else {
+      // 3. 極光迴旋螺旋彈
+      const count = this.enraged ? 12 : 8;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2 + this.timer * 2;
+        bullets.push(new Bullet(starX, this.y + 200, Math.cos(a) * 180, Math.sin(a) * 180, true, 1, 'star_spark'));
+      }
+    }
+  }
+
+  takeDamage(amount, particles) {
+    if (!this.active || this.entering || this.dying) return false;
+    this.hp -= amount;
+    sounds.playHit();
+
+    const colors = ['#fbc531', '#2ecc71', '#00f2fe', '#ffffff'];
+    for (let i = 0; i < 4; i++) {
+      particles.push(new Particle(
+        this.x + 20 + Math.random() * (this.w - 40),
+        this.y + 20 + Math.random() * (this.h - 40),
+        (Math.random() - 0.5) * 140,
+        (Math.random() - 0.5) * 140,
+        colors[Math.floor(Math.random() * colors.length)],
+        3.5,
+        0.25
+      ));
+    }
+
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.dying = true;
+      this.dyingTimer = 4.0;
+      sounds.playExplosion(true);
+      return true;
+    }
+    return false;
+  }
+
+  draw(ctx, camX) {
+    if (!this.alive || !this.active) return;
+    const sx = this.x - camX;
+    ctx.save();
+    ctx.translate(sx, this.y);
+
+    const centerX = 95;
+
+    // 1. Dynamic Rainbow Projection Aura
+    ctx.save();
+    const auraColor = this.enraged ? '#ff4757' : (['#fbc531', '#00d2d3', '#e056fd', '#2ecc71'][Math.floor(this.timer * 3) % 4]);
+    ctx.shadowColor = auraColor;
+    ctx.shadowBlur = this.enraged ? 28 : 20;
+
+    // 2. Evergreen Pine Tiers
+    const tiers = [
+      { topY: 30, botY: 120, topW: 20, botW: 55 },
+      { topY: 110, botY: 210, topW: 45, botW: 80 },
+      { topY: 195, botY: 310, topW: 70, botW: 110 },
+      { topY: 290, botY: 410, topW: 95, botW: 135 }
+    ];
+
+    for (let i = 0; i < tiers.length; i++) {
+      const t = tiers[i];
+      const tGrad = ctx.createLinearGradient(0, t.topY, 0, t.botY);
+      if (this.enraged) {
+        tGrad.addColorStop(0, '#e74c3c');
+        tGrad.addColorStop(0.5, '#c0392b');
+        tGrad.addColorStop(1, '#7f1d1d');
+      } else {
+        tGrad.addColorStop(0, '#2ecc71');
+        tGrad.addColorStop(0.4, '#27ae60');
+        tGrad.addColorStop(0.8, '#1e824c');
+        tGrad.addColorStop(1, '#145a32');
+      }
+      ctx.fillStyle = tGrad;
+      ctx.strokeStyle = this.enraged ? '#ff4757' : '#55efc4';
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.moveTo(centerX - t.topW, t.topY);
+      ctx.lineTo(centerX + t.topW, t.topY);
+      ctx.lineTo(centerX + t.botW, t.botY);
+      for (let s = 6; s >= 0; s--) {
+        const segX = centerX - t.botW + (s / 6) * t.botW * 2;
+        const segY = t.botY + ((s % 2 === 0) ? 6 : -4);
+        ctx.lineTo(segX, segY);
+      }
+      ctx.lineTo(centerX - t.botW, t.botY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 3. LED Ribbons & Spiral Lightstrips
+    ctx.save();
+    const ribbonColors = ['#fbc531', '#ff4757', '#00f2fe', '#ffffff'];
+    for (let r = 0; r < 5; r++) {
+      const rY = 60 + r * 70;
+      ctx.strokeStyle = ribbonColors[(r + Math.floor(this.timer * 4)) % ribbonColors.length];
+      ctx.lineWidth = 3;
+      ctx.shadowColor = ctx.strokeStyle;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.ellipse(centerX, rY, 30 + r * 16, 12, 0.15, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 4. Fairy Lights
+    const lightColors = ['#ff4757', '#fbc531', '#2ed573', '#00f2fe', '#ffffff'];
+    for (const fl of this.fairyLights) {
+      const alpha = 0.4 + Math.sin(this.timer * 6 + fl.phase) * 0.5;
+      ctx.fillStyle = lightColors[fl.colorIdx];
+      ctx.globalAlpha = Math.max(0.1, alpha);
+      ctx.beginPath();
+      ctx.arc(centerX + fl.rx, fl.ry, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1.0;
+
+    // 5. Stage Base
+    ctx.fillStyle = '#2c3e50';
+    ctx.strokeStyle = '#bdc3c7';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.roundRect(centerX - 80, 410, 160, 26, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = this.enraged ? '#ff4757' : '#fbc531';
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('★ 2026 新北歡樂耶誕城 ★', centerX, 423);
+
+    // 6. Top Christmas Star
+    ctx.save();
+    ctx.translate(centerX, 25);
+    const starRot = this.timer * (this.enraged ? 3 : 1.5);
+    ctx.rotate(starRot);
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#fbc531';
+    ctx.shadowBlur = 24;
+
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const rOuter = (i % 2 === 0) ? 22 : 11;
+      ctx.lineTo(Math.cos(a) * rOuter, Math.sin(a) * rOuter);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#fbc531';
+    ctx.beginPath();
+    ctx.arc(0, 0, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 7. Title Label
+    ctx.fillStyle = this.enraged ? '#ff4757' : '#00f2fe';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('★ 新北地標 · 超大光雕耶誕樹 ★', centerX, 10);
 
     ctx.restore();
   }
