@@ -1,0 +1,302 @@
+/* Retro Arcade Stylesheet for 寶島風情畫 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  background-color: #0b0c10;
+  color: #c5c6c7;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 12px;
+  overflow-x: hidden;
+}
+
+#arcade-cabinet {
+  width: 100%;
+  max-width: 900px;
+  background: #151821;
+  border-radius: 12px;
+  border: 2px solid #2e354f;
+  box-shadow: 0 0 35px rgba(0, 210, 211, 0.18), 0 20px 40px rgba(0, 0, 0, 0.6);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Header */
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-bottom: 1px solid #23293d;
+  padding-bottom: 10px;
+}
+
+.title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.main-title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #00f2fe;
+  text-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #fbc531;
+  letter-spacing: 1px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Arcade Buttons */
+.arcade-btn {
+  background: #1f2538;
+  color: #ffffff;
+  border: 1px solid #3d4a6e;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.arcade-btn:hover {
+  background: #2b334d;
+  border-color: #00d2d3;
+  color: #00d2d3;
+  box-shadow: 0 0 8px rgba(0, 210, 211, 0.4);
+}
+
+.arcade-btn.primary-btn {
+  background: #00a8ff;
+  border-color: #0097e6;
+  color: #ffffff;
+}
+
+.arcade-btn.primary-btn:hover {
+  background: #0097e6;
+  box-shadow: 0 0 12px rgba(0, 168, 255, 0.7);
+}
+
+.arcade-btn.active {
+  background: #00d2d3;
+  color: #111;
+  border-color: #00f2fe;
+}
+
+/* Screen Wrapper */
+.screen-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 800 / 480;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9), 0 0 15px rgba(0, 0, 0, 0.7);
+}
+
+#gameCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* CRT Scanlines Overlay */
+.crt-overlay {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.35) 50%
+  ),
+  linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.04),
+    rgba(0, 255, 0, 0.02),
+    rgba(0, 0, 255, 0.04)
+  );
+  background-size: 100% 3px, 6px 100%;
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.6);
+}
+
+.crt-overlay.active {
+  display: block;
+}
+
+/* Virtual Touch Controls */
+.touch-controls {
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #11141c;
+  border-radius: 8px;
+  border: 1px solid #23293d;
+}
+
+.touch-controls.touch-enabled {
+  display: flex;
+}
+
+.dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.dpad-mid {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dpad-center {
+  width: 38px;
+  height: 38px;
+  background: #1b2030;
+  border-radius: 4px;
+}
+
+.dpad-btn {
+  width: 44px;
+  height: 44px;
+  background: #252d42;
+  border: 1px solid #3f4b6d;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.dpad-btn:active {
+  background: #00d2d3;
+  color: #111;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 14px;
+}
+
+.act-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  color: #fff;
+}
+
+.act-btn.fire-btn {
+  background: #00a8ff;
+  border-color: #00f2fe;
+  box-shadow: 0 0 10px rgba(0, 168, 255, 0.5);
+}
+
+.act-btn.fire-btn:active {
+  background: #0077c2;
+  transform: scale(0.95);
+}
+
+.act-btn.bomb-btn {
+  background: #e84118;
+  border-color: #ff6b81;
+  box-shadow: 0 0 10px rgba(232, 65, 24, 0.5);
+}
+
+.act-btn.bomb-btn:active {
+  background: #b33918;
+  transform: scale(0.95);
+}
+
+/* Footer / Instructions */
+.game-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid #23293d;
+  padding-top: 10px;
+  font-size: 13px;
+  color: #a4b0be;
+}
+
+.controls-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.badge {
+  background: #23293d;
+  color: #00f2fe;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: 600;
+  border: 1px solid #3742fa;
+}
+
+.stage-info {
+  color: #747d8c;
+  font-size: 12px;
+}
+
+.stage-info code {
+  color: #fbc531;
+  background: #1b2030;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  #arcade-cabinet {
+    padding: 8px;
+  }
+  .main-title {
+    font-size: 18px;
+  }
+  .subtitle {
+    display: none;
+  }
+}

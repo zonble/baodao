@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>寶島風情畫 - 第一關 (Beautiful Formosa Stage 1)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="arcade-cabinet">
+    <header class="game-header">
+      <div class="title-group">
+        <h1 class="main-title">寶島風情畫</h1>
+        <span class="subtitle">STAGE 1: 寶島要塞前線</span>
+      </div>
+      <div class="header-actions">
+        <button id="sound-toggle-btn" class="arcade-btn">🔊 音效</button>
+        <button id="crt-toggle-btn" class="arcade-btn">📺 CRT 濾鏡</button>
+        <button id="start-btn" class="arcade-btn primary-btn">▶ 開始遊戲</button>
+      </div>
+    </header>
+
+    <div class="screen-wrapper">
+      <canvas id="gameCanvas" width="800" height="480"></canvas>
+      <div id="crt-scanlines" class="crt-overlay active"></div>
+    </div>
+
+    <!-- On-Screen Virtual Controls for Mobile/Touch -->
+    <div id="touch-controls" class="touch-controls">
+      <div class="dpad">
+        <button id="btn-up" class="dpad-btn up">▲</button>
+        <div class="dpad-mid">
+          <button id="btn-left" class="dpad-btn left">◀</button>
+          <div class="dpad-center"></div>
+          <button id="btn-right" class="dpad-btn right">▶</button>
+        </div>
+        <button id="btn-down" class="dpad-btn down">▼</button>
+      </div>
+
+      <div class="action-buttons">
+        <button id="btn-bomb" class="act-btn bomb-btn">💣 炸彈</button>
+        <button id="btn-fire" class="act-btn fire-btn">⚡ 射擊</button>
+      </div>
+    </div>
+
+    <!-- Instructions / Footer -->
+    <footer class="game-footer">
+      <div class="controls-legend">
+        <span class="badge">方向鍵 / WASD</span> 移動戰機
+        <span class="badge">Space / J</span> 發射主砲
+        <span class="badge">K / X</span> 釋放炸彈 (BOMB)
+        <span class="badge">P</span> 暫停
+        <span class="badge">M</span> 音效開關
+        <span class="badge">R</span> 重新挑戰
+      </div>
+      <div class="stage-info">
+        <small>根據 <code>docs/level1.md</code> 地圖規格精確還原：地面 e、巡航敵 x、掉落陷阱 |、突襲敵 s、要塞砲塔 塔、旗艦 BOSS 鯤鵬號</small>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="js/game.js"></script>
+  <script>
+    // CRT toggle button behavior
+    const crtBtn = document.getElementById('crt-toggle-btn');
+    const crtOverlay = document.getElementById('crt-scanlines');
+    crtBtn.addEventListener('click', () => {
+      crtOverlay.classList.toggle('active');
+      crtBtn.classList.toggle('active');
+    });
+
+    // Detect mobile touch to auto show touch controls
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+      document.getElementById('touch-controls').classList.add('touch-enabled');
+    }
+  </script>
+</body>
+</html>
