@@ -168,3 +168,20 @@
    - 雙子貢丸皆被擊破後，達成「全島制霸！寶島風情畫全破！」（Victory Screen）總結算。
 4. **復古 CRT 掃描線濾鏡**：
    - 內建專用掃描線、微光暈（Glow）與暗角（Vignette）模擬，可透過介面按鈕一鍵開啟/關閉。
+
+---
+
+## 十、 關卡資料編譯器 (Level Data Compiler)
+
+專案提供自動化 Python 解析器腳本 [`scripts/parse_levels.py`](file:///Users/zonble/Work/baodao/scripts/parse_levels.py)，可直接讀取 Markdown 地圖規格文件並編譯為輕量緊湊的 JavaScript 資料模組：
+
+### 執行方式
+```bash
+python3 scripts/parse_levels.py
+```
+
+### 功能特色
+1. **直接解析 Markdown**：自動循序掃描 `docs/level*.md`，從純文字 ASCII 網格中解析出所有地圖元件（`e`、`->`、`x`、`s`、`塔`、`|` 與首領方框）。
+2. **自動全形寬度計算**：精確支援中文字元（如 `塔` 佔 2 欄寬度）之座標對齊。
+3. **緊湊格式化（Compact Packing）**：採用二元座標陣列 `[r, c]` 結合解包函式 `unpack()`，將原本數千行的冗長 JSON 物件壓縮至約 170 行（約 10 KB），體積縮小 80%，兼顧極佳的可讀性與執行效能。
+4. **即時同步**：後續新增關卡（如 `docs/level4.md`）後，僅需執行該腳本即可全自動更新 [`js/levelData.js`](file:///Users/zonble/Work/baodao/js/levelData.js)。
