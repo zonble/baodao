@@ -38,6 +38,21 @@ def format_coords(points, indent=4, per_line=12):
         lines.append(" " * indent + ",".join(chunk))
     return "[\n" + ",\n".join(lines) + "\n" + " " * (indent - 2) + "]"
 
+def format_items(items: list, indent: int = 4, per_line: int = 8) -> str:
+    """Format [r, c, type] list into clean multi-line JS array."""
+    if not items:
+        return "[]"
+    lines = []
+    chunk = []
+    for it in items:
+        chunk.append(f"[{it[0]},{it[1]},'{it[2]}']")
+        if len(chunk) >= per_line:
+            lines.append(" " * indent + ",".join(chunk))
+            chunk = []
+    if chunk:
+        lines.append(" " * indent + ",".join(chunk))
+    return "[\n" + ",\n".join(lines) + "\n" + " " * (indent - 2) + "]"
+
 def parse_level_file(filepath: str) -> dict:
     """Parse a single docs/levelX.md file into structured level data."""
     with open(filepath, "r", encoding="utf-8") as f:
@@ -92,6 +107,7 @@ def parse_level_file(filepath: str) -> dict:
     enemiesS = []
     turrets = []
     traps = []
+    items = []
     playerStart = {"r": 4, "c": 1}
 
     def in_boss_box(r_pos, c_pos):
@@ -132,6 +148,12 @@ def parse_level_file(filepath: str) -> dict:
                 turrets.append([r, col])
             elif ch == "|":
                 traps.append([r, col])
+            elif ch in ("b", "B"):
+                items.append([r, col, "B"])
+            elif ch in ("p", "P"):
+                items.append([r, col, "P"])
+            elif ch in ("h", "H"):
+                items.append([r, col, "H"])
 
             col += w
             i += 1
@@ -156,7 +178,8 @@ def parse_level_file(filepath: str) -> dict:
         "enemiesX": enemiesX,
         "enemiesS": enemiesS,
         "turrets": turrets,
-        "traps": traps
+        "traps": traps,
+        "items": items
     }
 
 def generate_level_data_js(levels_data: list) -> str:
@@ -167,6 +190,8 @@ def generate_level_data_js(levels_data: list) -> str:
         "",
         "// Compact coordinate unpacker: [r, c] -> { r, c }",
         "const unpack = (pts) => pts.map(([r, c]) => ({ r, c }));",
+        "// Compact item unpacker: [r, c, type] -> { r, c, type }",
+        "const unpackItems = (pts) => pts.map(([r, c, type]) => ({ r, c, type }));",
         ""
     ]
 
@@ -192,7 +217,8 @@ def generate_level_data_js(levels_data: list) -> str:
         js_lines.append(f"  enemiesX: unpack({format_coords(data['enemiesX'], indent=4, per_line=12)}),")
         js_lines.append(f"  enemiesS: unpack({format_coords(data['enemiesS'], indent=4, per_line=12)}),")
         js_lines.append(f"  turrets: unpack({format_coords(data['turrets'], indent=4, per_line=12)}),")
-        js_lines.append(f"  traps: unpack({format_coords(data['traps'], indent=4, per_line=12)})")
+        js_lines.append(f"  traps: unpack({format_coords(data['traps'], indent=4, per_line=12)}),")
+        js_lines.append(f"  items: unpackItems({format_items(data['items'], indent=4)})")
         js_lines.append("};")
         js_lines.append("")
 

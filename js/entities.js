@@ -348,14 +348,15 @@ export class Bullet {
 
 // Powerup Drop Items
 export class DropItem {
-  constructor(x, y, type = 'P') {
+  constructor(x, y, type = 'P', isStatic = false) {
     this.x = x;
     this.y = y;
     this.w = 24;
     this.h = 24;
     this.type = type; // 'P': Power, 'S': Speed, 'B': Bomb, 'H': Heal
     this.alive = true;
-    this.vx = -30;
+    this.isStatic = isStatic;
+    this.vx = isStatic ? 0 : -30;
     this.vy = 0;
     this.baseY = y;
     this.timer = Math.random() * Math.PI * 2;

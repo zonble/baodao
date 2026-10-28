@@ -137,7 +137,9 @@ class Game {
 
     this.bullets = [];
     this.particles = [];
-    this.items = [];
+    this.items = (this.currentLevelData.items || []).map(
+      it => new DropItem(it.c * TILE_SIZE + 18, it.r * TILE_SIZE + 18, it.type, true)
+    );
     this.floatingTexts = [];
 
     this.cameraX = 0;
@@ -558,7 +560,7 @@ class Game {
           this.score += 200;
           this.floatingTexts.push(new FloatingText(item.x, item.y, 'SPEED UP!', '#22a6b3', 15));
         } else if (item.type === 'B') {
-          this.player.bombs = Math.min(4, this.player.bombs + 1);
+          this.player.bombs = Math.min(6, this.player.bombs + 1);
           this.score += 300;
           this.floatingTexts.push(new FloatingText(item.x, item.y, 'BOMB +1', '#eb4d4b', 15));
         } else if (item.type === 'H') {
