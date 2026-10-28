@@ -1,5 +1,5 @@
-// Main Game Engine for 寶島風情畫 第一關
-import { LEVEL_DATA } from './levelData.js';
+// Main Game Engine for 寶島風情畫 第一關與第二關
+import { LEVEL_DATA, LEVELS, LEVEL_1_DATA, LEVEL_2_DATA } from './levelData.js';
 import { sounds } from './audio.js';
 import {
   TILE_SIZE,
@@ -11,6 +11,9 @@ import {
   Turret,
   FallingTrap,
   Boss,
+  BobaBoss,
+  IronEggBoss,
+  createBoss,
   DropItem,
   Particle,
   FloatingText
@@ -27,12 +30,15 @@ class Game {
     this.canvas.width = this.viewW;
     this.canvas.height = this.viewH;
 
-    this.worldCols = LEVEL_DATA.cols; // 99
-    this.worldRows = LEVEL_DATA.rows; // 8
+    this.currentLevelIndex = 0; // 0 = Level 1 (Taipei), 1 = Level 2 (Tamsui)
+    this.currentLevelData = LEVELS[this.currentLevelIndex];
+
+    this.worldCols = this.currentLevelData.cols; // 99
+    this.worldRows = this.currentLevelData.rows; // 8
     this.worldWidth = this.worldCols * TILE_SIZE; // 5940 px
     this.worldHeight = this.worldRows * TILE_SIZE; // 480 px
 
-    this.state = 'TITLE'; // TITLE, PLAYING, PAUSED, GAMEOVER, VICTORY
+    this.state = 'TITLE'; // TITLE, PLAYING, PAUSED, STAGE_CLEAR, GAMEOVER, VICTORY
     this.cameraX = 0;
     this.scrollSpeed = 50; // px/sec
     this.cameraLocked = false;
@@ -67,46 +73,77 @@ class Game {
       });
     }
 
-    // Background: Taipei Aerial Photos
-    this.bgImages = [
-      { name: '台北101盆地全景', src: 'assets/taipei_101_panorama.jpg' },
-      { name: '松山機場與101遠眺', src: 'assets/taipei_airport_101.jpg' },
-      { name: '台北天際線日景', src: 'assets/taipei_skyline_101_day.jpg' }
+    // Background Photos per Level
+    this.levelBackgrounds = [
+      // Level 1: Taipei
+      [
+        { name: '台北101盆地全景', src: 'assets/taipei_101_panorama.jpg' },
+        { name: '松山機場與101遠眺', src: 'assets/taipei_airport_101.jpg' },
+        { name: '台北天際線日景', src: 'assets/taipei_skyline_101_day.jpg' }
+      ],
+      // Level 2: Tamsui & Guandu Bridge
+      [
+        { name: '關渡大橋與淡水夕陽', src: 'assets/tamsui_guandu_sunset.jpg' },
+        { name: '淡水河口金色夕照', src: 'assets/tamsui_sunset.jpg' },
+        { name: '關渡大橋紅色鋼拱', src: 'assets/guandu_bridge.jpg' }
+      ]
     ];
+
     this.bgIndex = 0;
+    this.bgImages = this.levelBackgrounds[this.currentLevelIndex];
     this.bgImage = new Image();
     this.bgLoaded = false;
     this.loadCurrentBackground();
 
     this.setupInputs();
-    this.initLevel();
+    this.initLevel(false);
 
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
   }
 
-  initLevel() {
+  initLevel(keepPlayerStats = false) {
+    this.currentLevelData = LEVELS[this.currentLevelIndex];
+    this.bgImages = this.levelBackgrounds[this.currentLevelIndex];
+    this.bgIndex = 0;
+    this.loadCurrentBackground();
+
+    this.worldCols = this.currentLevelData.cols;
+    this.worldRows = this.currentLevelData.rows;
+    this.worldWidth = this.worldCols * TILE_SIZE;
+    this.worldHeight = this.worldRows * TILE_SIZE;
+
     // Reset terrain grid
     this.terrainGrid = Array.from({ length: this.worldRows }, () =>
       Array(this.worldCols).fill(false)
     );
-    for (const t of LEVEL_DATA.terrain) {
+    for (const t of this.currentLevelData.terrain) {
       if (t.r < this.worldRows && t.c < this.worldCols) {
         this.terrainGrid[t.r][t.c] = true;
       }
     }
 
+    // Spawn Player
+    const startR = this.currentLevelData.playerStart.r;
+    const startC = this.currentLevelData.playerStart.c;
+    if (keepPlayerStats && this.player) {
+      this.player.x = startC * TILE_SIZE + 10;
+      this.player.y = startR * TILE_SIZE + 15;
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.shield = this.player.maxShield;
+      this.player.invulnerableTimer = 3.0;
+    } else {
+      this.player = new Player(startC * TILE_SIZE + 10, startR * TILE_SIZE + 15);
+    }
+
     // Spawn entities
-    const startR = LEVEL_DATA.playerStart.r;
-    const startC = LEVEL_DATA.playerStart.c;
-    this.player = new Player(startC * TILE_SIZE + 10, startR * TILE_SIZE + 15);
+    this.enemiesX = this.currentLevelData.enemiesX.map(e => new EnemyX(e.r, e.c));
+    this.enemiesS = this.currentLevelData.enemiesS.map(e => new SneakEnemyS(e.r, e.c));
+    this.turrets = this.currentLevelData.turrets.map(t => new Turret(t.r, t.c));
+    this.traps = this.currentLevelData.traps.map(tr => new FallingTrap(tr.r, tr.c));
 
-    this.enemiesX = LEVEL_DATA.enemiesX.map(e => new EnemyX(e.r, e.c));
-    this.enemiesS = LEVEL_DATA.enemiesS.map(e => new SneakEnemyS(e.r, e.c));
-    this.turrets = LEVEL_DATA.turrets.map(t => new Turret(t.r, t.c));
-    this.traps = LEVEL_DATA.traps.map(tr => new FallingTrap(tr.r, tr.c));
-
-    this.boss = new Boss(LEVEL_DATA.boss.r, LEVEL_DATA.boss.c);
+    this.boss = createBoss(this.currentLevelIndex, this.currentLevelData.boss.r, this.currentLevelData.boss.c);
 
     this.bullets = [];
     this.particles = [];
@@ -119,6 +156,25 @@ class Game {
     this.bossActive = false;
     this.screenShake = 0;
     this.stageIntroTimer = 3.5;
+
+    this.updateLevelUI();
+  }
+
+  updateLevelUI() {
+    const lvlBtn = document.getElementById('lvl-toggle-btn');
+    if (lvlBtn) {
+      lvlBtn.textContent = this.currentLevelIndex === 0 ? '🗺️ 第一關：台北' : '🗺️ 第二關：淡水';
+    }
+    const bgBtn = document.getElementById('bg-toggle-btn');
+    if (bgBtn && this.bgImages[this.bgIndex]) {
+      bgBtn.textContent = `🏙️ ${this.bgImages[this.bgIndex].name}`;
+    }
+    const subtitle = document.querySelector('.subtitle');
+    if (subtitle) {
+      subtitle.textContent = this.currentLevelIndex === 0
+        ? 'STAGE 1: 台北空照 (LEVEL 1)'
+        : 'STAGE 2: 淡水夕照 (LEVEL 2)';
+    }
   }
 
   loadCurrentBackground() {
@@ -141,9 +197,24 @@ class Game {
     sounds.startBgm();
     this.score = 0;
     this.enemiesDefeated = 0;
-    this.initLevel();
+    this.initLevel(false);
     this.state = 'PLAYING';
     this.stageIntroTimer = 3.5;
+  }
+
+  nextStage() {
+    sounds.ensureContext();
+    sounds.startBgm();
+    this.currentLevelIndex = 1; // Advance to Level 2
+    this.initLevel(true); // Keep score, lives, weapon level, bombs!
+    this.state = 'PLAYING';
+  }
+
+  switchLevel(index) {
+    sounds.ensureContext();
+    this.currentLevelIndex = index;
+    this.initLevel(false);
+    this.state = 'TITLE';
   }
 
   setupInputs() {
@@ -169,11 +240,14 @@ class Game {
       }
 
       if (code === 'KeyR' && (this.state === 'GAMEOVER' || this.state === 'VICTORY')) {
+        this.currentLevelIndex = 0;
         this.startNewGame();
       }
 
       if ((code === 'Enter' || code === 'Space') && this.state === 'TITLE') {
         this.startNewGame();
+      } else if ((code === 'Enter' || code === 'Space') && this.state === 'STAGE_CLEAR') {
+        this.nextStage();
       }
     });
 
@@ -217,6 +291,8 @@ class Game {
       startBtn.addEventListener('click', () => {
         if (this.state === 'TITLE' || this.state === 'GAMEOVER' || this.state === 'VICTORY') {
           this.startNewGame();
+        } else if (this.state === 'STAGE_CLEAR') {
+          this.nextStage();
         }
       });
     }
@@ -236,6 +312,14 @@ class Game {
         const nextName = this.nextBackground();
         bgBtn.textContent = `🏙️ ${nextName}`;
         this.floatingTexts.push(new FloatingText(this.cameraX + 400, 80, `背景切換：${nextName}`, '#00f2fe', 16));
+      });
+    }
+
+    const lvlBtn = document.getElementById('lvl-toggle-btn');
+    if (lvlBtn) {
+      lvlBtn.addEventListener('click', () => {
+        const nextLvl = (this.currentLevelIndex + 1) % LEVELS.length;
+        this.switchLevel(nextLvl);
       });
     }
   }
@@ -434,12 +518,17 @@ class Game {
       this.score += this.boss.scoreValue;
       this.score += this.player.lives * 1000;
       this.score += this.player.bombs * 500;
-      this.floatingTexts.push(new FloatingText(this.boss.x + this.boss.w / 2, this.boss.y + 40, `+${this.boss.scoreValue} BOSS CLEARED!`, '#fbc531', 18));
-      this.state = 'VICTORY';
       sounds.stopBgm();
       if (this.score > this.highScore) {
         this.highScore = this.score;
         localStorage.setItem('baodao_hi_score', this.highScore.toString());
+      }
+      if (this.currentLevelIndex === 0) {
+        this.floatingTexts.push(new FloatingText(this.boss.x + this.boss.w / 2, this.boss.y + 40, `+${this.boss.scoreValue} STAGE 1 CLEAR!`, '#fbc531', 18));
+        this.state = 'STAGE_CLEAR';
+      } else {
+        this.floatingTexts.push(new FloatingText(this.boss.x + this.boss.w / 2, this.boss.y + 40, `+${this.boss.scoreValue} ALL CLEAR!`, '#fbc531', 20));
+        this.state = 'VICTORY';
       }
     });
 
@@ -684,6 +773,8 @@ class Game {
     // HUD Bar at top
     this.drawHUD();
 
+    const isL1 = this.currentLevelIndex === 0;
+
     // Stage Intro Banner
     if (this.state === 'PLAYING' && this.stageIntroTimer > 0) {
       this.ctx.save();
@@ -697,11 +788,11 @@ class Game {
       this.ctx.shadowBlur = 10;
       this.ctx.font = 'bold 22px monospace';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText('第一關：寶島風情畫 (LEVEL 1)', this.viewW / 2, this.viewH / 2 - 6);
+      this.ctx.fillText(isL1 ? '第一關：台北上空 (LEVEL 1)' : '第二關：淡水夕照 (LEVEL 2)', this.viewW / 2, this.viewH / 2 - 6);
 
       this.ctx.fillStyle = '#fbc531';
       this.ctx.font = '13px monospace';
-      this.ctx.fillText('STAGE 1: TAIPEI OVERFLIGHT', this.viewW / 2, this.viewH / 2 + 20);
+      this.ctx.fillText(isL1 ? 'STAGE 1: TAIPEI SKYLINE & 101' : 'STAGE 2: TAMSUI SUNSET & GUANDU BRIDGE', this.viewW / 2, this.viewH / 2 + 20);
       this.ctx.restore();
     }
 
@@ -717,11 +808,11 @@ class Game {
       this.ctx.shadowBlur = 12;
       this.ctx.font = 'bold 22px "Press Start 2P", monospace, sans-serif';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText('⚠ 警報！超巨大珍珠奶茶來襲 ⚠', this.viewW / 2, this.viewH / 2 - 8);
+      this.ctx.fillText(isL1 ? '⚠ 警報！超巨大珍珠奶茶來襲 ⚠' : '⚠ 警報！超大淡水鐵蛋魔王來襲 ⚠', this.viewW / 2, this.viewH / 2 - 8);
 
       this.ctx.font = '14px monospace';
       this.ctx.fillStyle = '#ffffff';
-      this.ctx.fillText('WARNING: GIANT BOBA APPROACHING', this.viewW / 2, this.viewH / 2 + 24);
+      this.ctx.fillText(isL1 ? 'WARNING: GIANT BOBA APPROACHING' : 'WARNING: GIANT TAMSUI IRON EGG APPROACHING', this.viewW / 2, this.viewH / 2 + 24);
       this.ctx.restore();
     }
 
@@ -734,10 +825,10 @@ class Game {
       const barY = 40;
 
       // Label
-      this.ctx.fillStyle = '#ff9f43';
+      this.ctx.fillStyle = isL1 ? '#ff9f43' : '#f6ad55';
       this.ctx.font = 'bold 12px monospace';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText('BOSS: 巨型珍珠奶茶魔王 - 寶島波霸號 (GIANT BOBA)', this.viewW / 2, barY - 6);
+      this.ctx.fillText(this.boss.bossName || (isL1 ? 'BOSS: 巨型珍珠奶茶魔王 - 寶島波霸號 (GIANT BOBA)' : 'BOSS: 超大淡水鐵蛋魔王 - 阿婆黑金號 (IRON EGG)'), this.viewW / 2, barY - 6);
 
       // Frame
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
@@ -746,12 +837,18 @@ class Game {
       this.ctx.lineWidth = 1.5;
       this.ctx.strokeRect(barX - 2, barY - 2, barW + 4, barH + 4);
 
-      // Fill (Caramel Boba Gradient)
+      // Fill Gradient
       const ratio = Math.max(0, this.boss.hp / this.boss.maxHp);
       const grad = this.ctx.createLinearGradient(barX, barY, barX + barW, barY);
-      grad.addColorStop(0, '#ff4757');
-      grad.addColorStop(0.5, '#ffa502');
-      grad.addColorStop(1, '#ffbe76');
+      if (isL1) {
+        grad.addColorStop(0, '#ff4757');
+        grad.addColorStop(0.5, '#ffa502');
+        grad.addColorStop(1, '#ffbe76');
+      } else {
+        grad.addColorStop(0, '#ff4757');
+        grad.addColorStop(0.5, '#f39c12');
+        grad.addColorStop(1, '#2d1810');
+      }
       this.ctx.fillStyle = grad;
       this.ctx.fillRect(barX, barY, barW * ratio, barH);
       this.ctx.restore();
@@ -773,7 +870,7 @@ class Game {
       this.ctx.shadowBlur = 8;
       this.ctx.fillStyle = '#fbc531';
       this.ctx.font = '16px monospace';
-      this.ctx.fillText('第一關：台北上空 (LEVEL 1)', this.viewW / 2, 185);
+      this.ctx.fillText(isL1 ? '第一關：台北上空 (LEVEL 1)' : '第二關：淡水夕照 (LEVEL 2)', this.viewW / 2, 185);
 
       this.ctx.fillStyle = '#ffffff';
       this.ctx.font = '14px monospace';
@@ -837,8 +934,8 @@ class Game {
       this.ctx.restore();
     }
 
-    // VICTORY SCREEN
-    if (this.state === 'VICTORY') {
+    // STAGE CLEAR SCREEN (Clear Stage 1 -> Proceed to Stage 2)
+    if (this.state === 'STAGE_CLEAR') {
       this.ctx.save();
       this.ctx.fillStyle = 'rgba(5, 25, 45, 0.88)';
       this.ctx.fillRect(0, 0, this.viewW, this.viewH);
@@ -846,29 +943,73 @@ class Game {
       this.ctx.fillStyle = '#fbc531';
       this.ctx.shadowColor = '#fbc531';
       this.ctx.shadowBlur = 20;
-      this.ctx.font = 'bold 34px monospace';
+      this.ctx.font = 'bold 32px monospace';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText('★ 第一關 突破成功！★', this.viewW / 2, 130);
+      this.ctx.fillText('★ 第一關 突破成功！★', this.viewW / 2, 115);
 
       this.ctx.shadowBlur = 0;
       this.ctx.fillStyle = '#00d2d3';
       this.ctx.font = '16px monospace';
-      this.ctx.fillText('STAGE 1 CLEAR - MISSION COMPLETE', this.viewW / 2, 175);
+      this.ctx.fillText('STAGE 1 CLEAR - MISSION COMPLETE', this.viewW / 2, 155);
+
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.font = '15px monospace';
+      this.ctx.fillText(`作戰得分: ${this.score}`, this.viewW / 2, 205);
+      this.ctx.fillText(`擊墜敵機: ${this.enemiesDefeated} 架`, this.viewW / 2, 235);
+      this.ctx.fillText(`殘存戰機獎勵: +${this.player.lives * 1000} PTS`, this.viewW / 2, 265);
+
+      // Next stage teaser
+      this.ctx.fillStyle = '#ff9f43';
+      this.ctx.font = 'bold 15px monospace';
+      this.ctx.fillText('【 下一關情報 】', this.viewW / 2, 305);
+      this.ctx.fillStyle = '#fbc531';
+      this.ctx.font = '14px monospace';
+      this.ctx.fillText('第二關場景：淡水的夕陽與關渡大橋', this.viewW / 2, 332);
+      this.ctx.fillText('守關魔王：超大淡水鐵蛋', this.viewW / 2, 356);
+
+      const blink = Math.floor(Date.now() / 350) % 2 === 0;
+      if (blink) {
+        this.ctx.fillStyle = '#00f2fe';
+        this.ctx.font = 'bold 18px monospace';
+        this.ctx.fillText('▶ 按 空白鍵 或 點擊出擊 前往第二關 ◀', this.viewW / 2, 415);
+      }
+      this.ctx.restore();
+    }
+
+    // VICTORY SCREEN (All Stages Complete)
+    if (this.state === 'VICTORY') {
+      this.ctx.save();
+      this.ctx.fillStyle = 'rgba(5, 25, 45, 0.92)';
+      this.ctx.fillRect(0, 0, this.viewW, this.viewH);
+
+      this.ctx.fillStyle = '#fbc531';
+      this.ctx.shadowColor = '#fbc531';
+      this.ctx.shadowBlur = 22;
+      this.ctx.font = 'bold 34px monospace';
+      this.ctx.textAlign = 'center';
+      this.ctx.fillText('★★ 全破祝賀！全島制霸！★★', this.viewW / 2, 115);
+
+      this.ctx.shadowBlur = 0;
+      this.ctx.fillStyle = '#00d2d3';
+      this.ctx.font = '16px monospace';
+      this.ctx.fillText('ALL STAGES CLEARED - CONGRATULATIONS!', this.viewW / 2, 155);
 
       this.ctx.fillStyle = '#ffffff';
       this.ctx.font = '16px monospace';
-      this.ctx.fillText(`作戰得分: ${this.score}`, this.viewW / 2, 230);
-      this.ctx.fillText(`擊墜敵機: ${this.enemiesDefeated} 架`, this.viewW / 2, 265);
-      this.ctx.fillText(`剩餘戰機獎勵: +${this.player.lives * 1000} PTS`, this.viewW / 2, 300);
+      this.ctx.fillText(`最終作戰總分: ${this.score}`, this.viewW / 2, 215);
+      this.ctx.fillText(`總擊墜敵機: ${this.enemiesDefeated} 架`, this.viewW / 2, 250);
+      this.ctx.fillText(`通關殘存戰機獎勵: +${this.player.lives * 1000} PTS`, this.viewW / 2, 285);
+      this.ctx.fillText(`剩餘炸彈獎勵: +${this.player.bombs * 500} PTS`, this.viewW / 2, 320);
 
       const blink = Math.floor(Date.now() / 350) % 2 === 0;
       if (blink) {
         this.ctx.fillStyle = '#fbc531';
         this.ctx.font = 'bold 18px monospace';
-        this.ctx.fillText('按 R 鍵 再次挑戰第一關', this.viewW / 2, 375);
+        this.ctx.fillText('按 R 鍵 重新挑戰第一關', this.viewW / 2, 395);
       }
       this.ctx.restore();
     }
+  }
   }
 
   drawHUD() {

@@ -130,6 +130,33 @@ export class Bullet {
         ctx.shadowBlur = 8;
         ctx.fillRect(-6, -6, 12, 12);
         ctx.strokeRect(-6, -6, 12, 12);
+      } else if (this.type === 'marinade') {
+        // Dark-Gold Soy Marinade Bullet (黑金濃汁能量彈)
+        ctx.fillStyle = '#b7791f';
+        ctx.shadowColor = '#f6ad55';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(screenX, this.y, 6.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#fefcbf';
+        ctx.beginPath();
+        ctx.arc(screenX - 1.5, this.y - 1.5, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (this.type === 'iron_shard') {
+        // Iron Egg Shell Fragment (鐵蛋硬化破片)
+        ctx.translate(screenX, this.y);
+        ctx.rotate(Date.now() * 0.008);
+        ctx.fillStyle = '#2d1810';
+        ctx.strokeStyle = '#f6ad55';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, -6);
+        ctx.lineTo(6, 4);
+        ctx.lineTo(-6, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
       } else {
         // Standard energy bullet
         ctx.fillStyle = '#ff4757';
@@ -1426,4 +1453,396 @@ export class Boss {
     ctx.restore();
     ctx.restore();
   }
+}
+
+// Alias BobaBoss
+export const BobaBoss = Boss;
+
+// Stage 2 Boss: 超大淡水鐵蛋魔王 - 阿婆黑金號 (GIANT TAMSUI IRON EGG BOSS)
+export class IronEggBoss {
+  constructor(r, c) {
+    this.targetX = c * TILE_SIZE - 40;
+    this.x = this.targetX + 350;
+    this.y = r * TILE_SIZE - 30;
+    this.w = 160;
+    this.h = 200;
+    this.maxHp = 180;
+    this.hp = 180;
+    this.alive = true;
+    this.active = false;
+    this.entering = false;
+    this.baseY = this.y;
+    this.timer = 0;
+    this.attackTimer = 1.8;
+    this.attackPhase = 1;
+    this.enraged = false;
+    this.dying = false;
+    this.dyingTimer = 3.5;
+    this.scoreValue = 8000;
+    this.bossName = '超大淡水鐵蛋魔王 - 阿婆黑金號';
+
+    // 4 Orbiting Quail Iron Eggs (鵪鶉小鐵蛋浮游砲)
+    this.orbitRadius = 110;
+    this.quailEggs = [
+      { angle: 0 },
+      { angle: Math.PI / 2 },
+      { angle: Math.PI },
+      { angle: (Math.PI * 3) / 2 }
+    ];
+
+    // Shell marbling/crackle patterns
+    this.cracks = [];
+    for (let i = 0; i < 14; i++) {
+      this.cracks.push({
+        x1: 30 + Math.random() * 100,
+        y1: 40 + Math.random() * 120,
+        x2: 30 + Math.random() * 100,
+        y2: 40 + Math.random() * 120
+      });
+    }
+  }
+
+  activate(camX) {
+    this.active = true;
+    this.entering = true;
+    this.x = camX + 850;
+    sounds.playWarning();
+  }
+
+  update(dt, camX, player, bullets, particles, onDefeated) {
+    if (!this.alive || !this.active) return;
+
+    if (this.dying) {
+      this.dyingTimer -= dt;
+      // Heavy explosions, dark marinade splashes and cracked shell sparks!
+      if (Math.random() < 0.75) {
+        sounds.playExplosion(Math.random() < 0.4);
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 240,
+          (Math.random() - 0.5) * 240,
+          Math.random() < 0.5 ? '#f39c12' : '#e74c3c',
+          6,
+          0.6
+        ));
+        // Golden marinade mist
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 180,
+          (Math.random() - 0.5) * 180,
+          '#b7791f',
+          5,
+          0.5
+        ));
+        // Obsidian egg shell fragments
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 200,
+          (Math.random() - 0.5) * 200,
+          '#1e100c',
+          6,
+          0.7
+        ));
+      }
+      if (this.dyingTimer <= 0) {
+        this.alive = false;
+        sounds.playVictory();
+        if (onDefeated) onDefeated();
+      }
+      return;
+    }
+
+    // Entrance slide animation
+    if (this.entering) {
+      this.x -= 130 * dt;
+      if (this.x <= camX + 590) {
+        this.x = camX + 590;
+        this.entering = false;
+      }
+      return;
+    }
+
+    this.timer += dt;
+
+    // Movement: Bobbing + Occasional heavy slam bounce
+    const hoverSpeed = this.enraged ? 3.0 : 2.0;
+    const hoverAmp = 55;
+    this.y = this.baseY + Math.sin(this.timer * hoverSpeed) * hoverAmp;
+
+    // Orbiting Quail Eggs Rotation
+    const orbitSpeed = this.enraged ? 3.2 : 2.0;
+    for (const egg of this.quailEggs) {
+      egg.angle += orbitSpeed * dt;
+    }
+
+    // Check enrage state (< 50% HP)
+    if (this.hp <= this.maxHp * 0.5 && !this.enraged) {
+      this.enraged = true;
+      sounds.playWarning();
+      // Shockwave
+      for (let i = 0; i < 40; i++) {
+        particles.push(new Particle(
+          this.x + this.w / 2,
+          this.y + this.h / 2,
+          (Math.random() - 0.5) * 360,
+          (Math.random() - 0.5) * 360,
+          Math.random() < 0.5 ? '#f39c12' : '#2d1810',
+          5.5,
+          0.6
+        ));
+      }
+    }
+
+    // Execute Attacks
+    this.attackTimer -= dt;
+    if (this.attackTimer <= 0) {
+      this.executeAttack(player, bullets, particles);
+      this.attackTimer = this.enraged ? 1.3 : 2.1;
+    }
+  }
+
+  executeAttack(player, bullets, particles) {
+    sounds.playEnemyLaser();
+    const coreX = this.x + 30;
+    const coreY = this.y + this.h / 2;
+
+    this.attackPhase = (this.attackPhase % 3) + 1;
+
+    if (this.attackPhase === 1) {
+      // 1. 黑金滷汁放射 (Marinade Salvo): 5-7 high-speed amber-gold energy balls
+      const count = this.enraged ? 7 : 5;
+      const spread = 0.75;
+      const baseAngle = Math.PI;
+      for (let i = 0; i < count; i++) {
+        const offset = ((i / (count - 1)) - 0.5) * spread;
+        const a = baseAngle + offset;
+        const speed = 190;
+        bullets.push(new Bullet(coreX, coreY, Math.cos(a) * speed, Math.sin(a) * speed, true, 1, 'marinade'));
+      }
+    } else if (this.attackPhase === 2) {
+      // 2. 鵪鶉鐵蛋齊射 (Quail Drone Crossfire)
+      for (const egg of this.quailEggs) {
+        const eggX = this.x + this.w / 2 + Math.cos(egg.angle) * this.orbitRadius;
+        const eggY = this.y + this.h / 2 + Math.sin(egg.angle) * this.orbitRadius;
+        const a = Math.atan2(player.y - eggY, player.x - eggX);
+        bullets.push(new Bullet(eggX, eggY, Math.cos(a) * 180, Math.sin(a) * 180, true, 1, 'boba'));
+      }
+    } else {
+      // 3. 鐵蛋硬化破片大爆發 (Hardened Shell Shard Burst)
+      const count = this.enraged ? 10 : 6;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2;
+        bullets.push(new Bullet(this.x + this.w / 2, this.y + this.h / 2, Math.cos(a) * 160, Math.sin(a) * 160, true, 1, 'iron_shard'));
+      }
+      // Direct heavy shot to player
+      const aimA = Math.atan2(player.y - coreY, player.x - coreX);
+      bullets.push(new Bullet(coreX, coreY, Math.cos(aimA) * 230, Math.sin(aimA) * 230, true, 1.5, 'marinade'));
+    }
+  }
+
+  takeDamage(amount, particles) {
+    if (!this.active || this.entering || this.dying) return false;
+    this.hp -= amount;
+    sounds.playHit();
+
+    // Metallic / Hardened rock sparks
+    for (let i = 0; i < 4; i++) {
+      particles.push(new Particle(
+        this.x + 30 + Math.random() * 50,
+        this.y + 40 + Math.random() * 120,
+        (Math.random() - 0.5) * 100,
+        (Math.random() - 0.5) * 100,
+        Math.random() < 0.5 ? '#f6ad55' : '#2d1810',
+        3.5,
+        0.25
+      ));
+    }
+
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.dying = true;
+      this.dyingTimer = 3.2;
+      sounds.playExplosion(true);
+      return true;
+    }
+    return false;
+  }
+
+  draw(ctx, camX) {
+    if (!this.alive || !this.active) return;
+    const sx = this.x - camX;
+    ctx.save();
+    ctx.translate(sx, this.y);
+
+    const centerX = this.w / 2;
+    const centerY = this.h / 2;
+
+    // 1. Draw 4 Orbiting Quail Iron Eggs
+    for (const egg of this.quailEggs) {
+      const qX = centerX + Math.cos(egg.angle) * this.orbitRadius;
+      const qY = centerY + Math.sin(egg.angle) * this.orbitRadius;
+      ctx.save();
+      ctx.translate(qX, qY);
+      ctx.rotate(egg.angle);
+
+      // Mini egg shadow / aura
+      ctx.shadowColor = this.enraged ? '#ff4757' : '#f6ad55';
+      ctx.shadowBlur = 8;
+
+      ctx.fillStyle = '#1e100c';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 10, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Mini egg gloss
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.beginPath();
+      ctx.arc(-3, -4, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 2. Draw Main Giant Iron Egg Body
+    ctx.save();
+    ctx.shadowColor = this.enraged ? 'rgba(255, 71, 87, 0.7)' : 'rgba(246, 173, 85, 0.5)';
+    ctx.shadowBlur = 18;
+
+    // Deep marinated obsidian brown-black egg gradient
+    const eggGrad = ctx.createLinearGradient(0, 10, 0, 200);
+    if (this.enraged) {
+      eggGrad.addColorStop(0, '#5a1a10');
+      eggGrad.addColorStop(0.5, '#2e0f0a');
+      eggGrad.addColorStop(1, '#180705');
+    } else {
+      eggGrad.addColorStop(0, '#4a2511');
+      eggGrad.addColorStop(0.35, '#2c150a');
+      eggGrad.addColorStop(0.7, '#1c0c06');
+      eggGrad.addColorStop(1, '#0e0503');
+    }
+
+    ctx.fillStyle = eggGrad;
+    ctx.beginPath();
+    // Smooth egg bezier path
+    ctx.moveTo(centerX, 10);
+    ctx.bezierCurveTo(centerX + 65, 10, this.w, 110, this.w - 15, 180);
+    ctx.bezierCurveTo(this.w - 30, 215, 30, 215, 15, 180);
+    ctx.bezierCurveTo(0, 110, centerX - 65, 10, centerX, 10);
+    ctx.closePath();
+    ctx.fill();
+
+    // Metallic egg border
+    ctx.strokeStyle = this.enraged ? '#ff4757' : '#d4a373';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // 3. Chewy Hardened Shell Gloss Specular (弧形金屬反光)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(centerX - 35, 30);
+    ctx.bezierCurveTo(centerX - 60, 70, 20, 130, 30, 170);
+    ctx.stroke();
+
+    // Secondary specular highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.beginPath();
+    ctx.ellipse(centerX - 30, 45, 12, 5, -0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4. Cracks / Fissures (十重滷煮裂紋)
+    ctx.strokeStyle = this.enraged ? '#ff4757' : 'rgba(246, 173, 85, 0.4)';
+    ctx.lineWidth = this.enraged ? 2 : 1;
+    for (const ck of this.cracks) {
+      ctx.beginPath();
+      ctx.moveTo(ck.x1, ck.y1);
+      ctx.lineTo(ck.x2, ck.y2);
+      ctx.stroke();
+    }
+
+    // 5. Traditional Seal Stamp (阿婆鐵蛋 / 正宗淡水)
+    ctx.save();
+    ctx.translate(centerX, 155);
+    ctx.rotate(-0.08);
+    ctx.fillStyle = '#b71540';
+    ctx.strokeStyle = '#fbc531';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(-35, -12, 70, 24);
+    ctx.strokeRect(-35, -12, 70, 24);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('阿婆鐵蛋', 0, 1);
+    ctx.restore();
+
+    // 6. Boss Face / Eyes
+    const eyeY = 95;
+    if (this.enraged) {
+      // Red Blazing Eyes
+      ctx.fillStyle = '#ff3838';
+      ctx.shadowColor = '#ff3838';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(45, eyeY - 6);
+      ctx.lineTo(70, eyeY + 4);
+      ctx.lineTo(50, eyeY + 6);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(115, eyeY - 6);
+      ctx.lineTo(90, eyeY + 4);
+      ctx.lineTo(110, eyeY + 6);
+      ctx.closePath();
+      ctx.fill();
+
+      // Roaring crack mouth
+      ctx.strokeStyle = '#ff3838';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(60, 122);
+      ctx.lineTo(75, 128);
+      ctx.lineTo(85, 122);
+      ctx.lineTo(100, 128);
+      ctx.stroke();
+    } else {
+      // Fierce Battle Eyes
+      ctx.fillStyle = '#fbc531';
+      ctx.shadowColor = '#f6ad55';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.ellipse(55, eyeY, 8, 4, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(105, eyeY, 8, 4, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eye pupil
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(54, eyeY, 2, 0, Math.PI * 2);
+      ctx.arc(106, eyeY, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    // Title label
+    ctx.fillStyle = '#f6ad55';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('★ 正宗淡水鐵蛋 ★', centerX, 25);
+
+    ctx.restore();
+    ctx.restore();
+  }
+}
+
+// Boss Factory
+export function createBoss(stageIndex, r, c) {
+  if (stageIndex === 1) {
+    return new IronEggBoss(r, c);
+  }
+  return new BobaBoss(r, c);
 }
