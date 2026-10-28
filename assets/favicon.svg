@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="hull" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2fe"/>
+      <stop offset="100%" stop-color="#4facfe"/>
+    </linearGradient>
+    <linearGradient id="cockpit" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fbc531"/>
+      <stop offset="100%" stop-color="#e1b12c"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0c0d1a"/>
+  <!-- Thruster flame -->
+  <polygon points="6,32 18,26 16,32 18,38" fill="#ff4757"/>
+  <polygon points="10,32 18,29 17,32 18,35" fill="#ffa502"/>
+  <!-- Ship body -->
+  <polygon points="56,32 18,12 24,24 16,28 16,36 24,40 18,52" fill="url(#hull)"/>
+  <!-- Wing tips -->
+  <polygon points="18,12 26,16 16,28" fill="#00cec9"/>
+  <polygon points="18,52 26,48 16,36" fill="#00cec9"/>
+  <!-- Cockpit canopy -->
+  <polygon points="46,32 30,27 34,32 30,37" fill="url(#cockpit)"/>
+  <!-- Energy nose dot -->
+  <circle cx="56" cy="32" r="3" fill="#ffffff"/>
+</svg>

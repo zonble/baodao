@@ -3,7 +3,62 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>寶島風情畫 (Beautiful Formosa Shmup)</title>
+  <title>寶島風情畫 - 臺灣主題復古街機橫向射擊遊戲 (Beautiful Formosa Shmup)</title>
+
+  <!-- Primary Meta Tags -->
+  <meta name="title" content="寶島風情畫 - 臺灣主題復古街機橫向射擊遊戲 (Beautiful Formosa Shmup)">
+  <meta name="description" content="《寶島風情畫》是一款融合臺灣在地美景與特色美食的 HTML5 復古橫向捲軸射擊遊戲（Shmup / STG）。巡航台北101、淡水夕照、新竹科園、台中綠園道、桃園航空城、新北耶誕城與高雄八五大樓，迎戰超大珍奶、鐵蛋、貢丸、慶記手槍、巨無霸客機、光雕耶誕樹與丹丹漢堡！免下載即開即玩，支援手機觸控與 CRT 掃描線濾鏡。">
+  <meta name="keywords" content="寶島風情畫, 台灣遊戲, 復古街機, 橫向捲軸射擊, Shmup, STG, 8-bit, 台北101, 珍珠奶茶, 丹丹漢堡, 台中慶記, 桃園機場, 八五大樓, 新北耶誕城, HTML5遊戲, 獨立遊戲">
+  <meta name="author" content="Weizhong Yang (zonble)">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0c0d1a">
+  <link rel="canonical" href="https://zonble.github.io/baodao/">
+
+  <!-- Favicon & Icons -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/og_image.jpg">
+
+  <!-- Open Graph / Facebook / LINE / Threads / Discord -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://zonble.github.io/baodao/">
+  <meta property="og:title" content="寶島風情畫 - 臺灣主題復古街機橫向射擊遊戲">
+  <meta property="og:description" content="飛越台北、淡水、新竹、台中、桃園、新北與高雄！迎戰珍奶波霸、阿婆鐵蛋、新竹貢丸、慶記手槍與丹丹速食雙霸！免下載網頁即玩。">
+  <meta property="og:image" content="https://zonble.github.io/baodao/assets/og_image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="寶島風情畫遊戲主視覺與台北101空照圖">
+  <meta property="og:site_name" content="寶島風情畫 (Beautiful Formosa)">
+  <meta property="og:locale" content="zh_TW">
+
+  <!-- Twitter / X Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://zonble.github.io/baodao/">
+  <meta name="twitter:title" content="寶島風情畫 - 臺灣主題復古街機橫向射擊遊戲">
+  <meta name="twitter:description" content="飛越台北、淡水、新竹、台中、桃園、新北與高雄！迎戰珍奶波霸、阿婆鐵蛋、新竹貢丸、慶記手槍與丹丹速食雙霸！免下載網頁即玩。">
+  <meta name="twitter:image" content="https://zonble.github.io/baodao/assets/og_image.jpg">
+
+  <!-- Schema.org Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "寶島風情畫",
+    "alternateName": "Beautiful Formosa Shmup",
+    "description": "以臺灣在地城市美景與特色美食、迷因為主題的復古 HTML5 街機橫向捲軸彈幕射擊遊戲。",
+    "genre": ["Shoot 'em up", "Arcade", "Retro", "Action"],
+    "playMode": "SinglePlayer",
+    "applicationCategory": "Game",
+    "operatingSystem": "Any (Web Browser)",
+    "url": "https://zonble.github.io/baodao/",
+    "image": "https://zonble.github.io/baodao/assets/og_image.jpg",
+    "inLanguage": "zh-TW",
+    "author": {
+      "@type": "Person",
+      "name": "Weizhong Yang (zonble)"
+    }
+  }
+  </script>
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,10 +76,10 @@
       </div>
     </header>
 
-    <div class="screen-wrapper">
-      <canvas id="gameCanvas" width="800" height="480"></canvas>
+    <main class="screen-wrapper">
+      <canvas id="gameCanvas" width="800" height="480" aria-label="寶島風情畫遊戲畫面"></canvas>
       <div id="crt-scanlines" class="crt-overlay active"></div>
-    </div>
+    </main>
 
     <!-- On-Screen Virtual Controls for Mobile/Touch -->
     <div id="touch-controls" class="touch-controls">
@@ -58,6 +113,26 @@
         <small>根據 <code>docs/level1.md</code> 至 <code>docs/level7.md</code> 規格實作：第一關「台北上空・超大珍珠奶茶」、第二關「淡水夕照・超大淡水鐵蛋」、第三關「新竹科園・超大新竹貢丸雙子」、第四關「台中綠園道・超級大手槍」、第五關「桃園航空城・超大巨無霸客機」、第六關「新北耶誕城・超大光雕耶誕樹」與第七關「高雄港灣・超大丹丹漢堡與麵線羹雙霸」</small>
       </div>
     </footer>
+
+    <!-- SEO & Accessible Game Introduction -->
+    <article class="game-intro-card">
+      <details class="seo-accordion">
+        <summary class="seo-summary">📖 遊戲簡介與全七關特色介紹 (點擊展開)</summary>
+        <div class="seo-content">
+          <p><strong>《寶島風情畫》</strong>（Beautiful Formosa Shmup）是一款以臺灣美麗風景與豐富飲食文化、趣味在地迷因為主題的復古 HTML5 橫向捲軸射擊遊戲。全程使用原生 Web Canvas 與 Web Audio 技術開發，兼具流暢彈幕手感與懷舊 8-bit FM Chiptune 音樂，免下載、跨平台手機與電腦點開即玩！</p>
+          <h3>🌟 全島制霸七大關卡特色</h3>
+          <ul>
+            <li><strong>第一關【台北上空】</strong>：台北市遠景全景・迎戰「超巨大珍珠奶茶魔王（寶島波霸號）」</li>
+            <li><strong>第二關【淡水夕照】</strong>：淡水河夕照與關渡大橋鋼拱・迎戰「超大淡水鐵蛋魔王（阿婆黑金號）」</li>
+            <li><strong>第三關【新竹科園】</strong>：半導體晶圓科技廠房・對決「超大新竹貢丸彈力雙子（彈力壹號 &amp; 爆汁貳號）」</li>
+            <li><strong>第四關【台中綠園道】</strong>：草悟道與市民廣場綠意・對決「超級大手槍魔王（台中慶記號）」</li>
+            <li><strong>第五關【桃園航空城】</strong>：桃園國際機場跑道・阻截「超大巨無霸客機（桃園之翼號）」</li>
+            <li><strong>第六關【新北耶誕城】</strong>：市民廣場萬坪光雕秀・挑戰高空地標「超大光雕耶誕樹魔王（新北竹筍號）」</li>
+            <li><strong>第七關【高雄港灣】</strong>：八五大樓天際線與海港・迎戰南部速食霸主「超大丹丹漢堡 x 超大丹丹麵線羹雙霸」</li>
+          </ul>
+        </div>
+      </details>
+    </article>
   </div>
 
   <script type="module" src="js/game.js"></script>
