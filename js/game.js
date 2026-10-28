@@ -67,13 +67,16 @@ class Game {
       });
     }
 
-    // Background: Taipei Aerial Photo
+    // Background: Taipei Aerial Photos
+    this.bgImages = [
+      { name: '台北101盆地全景', src: 'assets/taipei_101_panorama.jpg' },
+      { name: '松山機場與101遠眺', src: 'assets/taipei_airport_101.jpg' },
+      { name: '台北天際線日景', src: 'assets/taipei_skyline_101_day.jpg' }
+    ];
+    this.bgIndex = 0;
     this.bgImage = new Image();
-    this.bgImage.src = 'assets/taipei_skyline.jpg';
     this.bgLoaded = false;
-    this.bgImage.onload = () => {
-      this.bgLoaded = true;
-    };
+    this.loadCurrentBackground();
 
     this.setupInputs();
     this.initLevel();
@@ -116,6 +119,21 @@ class Game {
     this.bossActive = false;
     this.screenShake = 0;
     this.stageIntroTimer = 3.5;
+  }
+
+  loadCurrentBackground() {
+    this.bgLoaded = false;
+    const cur = this.bgImages[this.bgIndex];
+    this.bgImage.src = cur.src;
+    this.bgImage.onload = () => {
+      this.bgLoaded = true;
+    };
+  }
+
+  nextBackground() {
+    this.bgIndex = (this.bgIndex + 1) % this.bgImages.length;
+    this.loadCurrentBackground();
+    return this.bgImages[this.bgIndex].name;
   }
 
   startNewGame() {
@@ -209,6 +227,15 @@ class Game {
         sounds.ensureContext();
         const isMuted = sounds.toggleMute();
         soundBtn.textContent = isMuted ? '🔇 靜音' : '🔊 音效';
+      });
+    }
+
+    const bgBtn = document.getElementById('bg-toggle-btn');
+    if (bgBtn) {
+      bgBtn.addEventListener('click', () => {
+        const nextName = this.nextBackground();
+        bgBtn.textContent = `🏙️ ${nextName}`;
+        this.floatingTexts.push(new FloatingText(this.cameraX + 400, 80, `背景切換：${nextName}`, '#00f2fe', 16));
       });
     }
   }
@@ -570,23 +597,13 @@ class Game {
         this.ctx.drawImage(this.bgImage, x, 0, scaledW, scaledH);
       }
 
-      // Atmospheric arcade tint overlay (ensures retro bullets & sprites pop with contrast)
+      // Very subtle arcade edge vignette to keep Taipei 101 bright and recognizable
       const tint = this.ctx.createLinearGradient(0, 0, 0, this.viewH);
-      tint.addColorStop(0, 'rgba(8, 12, 32, 0.42)');
-      tint.addColorStop(0.65, 'rgba(12, 10, 28, 0.25)');
-      tint.addColorStop(1, 'rgba(10, 15, 35, 0.45)');
+      tint.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
+      tint.addColorStop(0.5, 'rgba(0, 0, 0, 0.05)');
+      tint.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
       this.ctx.fillStyle = tint;
       this.ctx.fillRect(0, 0, this.viewW, this.viewH);
-
-      // Subtle twinkling stars in the upper sky
-      this.ctx.save();
-      for (const s of this.stars) {
-        if (s.y < 180) {
-          this.ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha * 0.7})`;
-          this.ctx.fillRect(s.x, s.y, s.size, s.size);
-        }
-      }
-      this.ctx.restore();
     } else {
       // Fallback procedural sky gradient
       const skyGrad = this.ctx.createLinearGradient(0, 0, 0, this.viewH);

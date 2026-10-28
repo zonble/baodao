@@ -1,15 +1,17 @@
 # 寶島風情畫第一關
 
+```
 ┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
 │       eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee      │
-│               eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee  x                          │
-│                        s         塔 塔      |       eeeeeeeeeeee  |    x   x                      │
-│         x              s         x    x        x    eeeeeeeeeeee       x   x             ┌──────┐ │
-│ ->       x          eeeeee   s    x    x       x    eeeeeeeeeeee     eee   x   x         │ boss │ │
-│           x    eeeeeeeeeeeee s     x    x      x    eeeeeeeeeeee     eee       x         └──────┘ │
-│          塔    eeeeeeeeeeeee     塔 塔                  x  x  x      eee       x                  │
+│               eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee  x      塔    x          x  │
+│                        s         塔 塔      |       eeeeeeeeeeee  |    x   x      x x       x  x  │
+│         x              s         x    x        xx   eeeeeeeeeeee s     x   x      x x    ┌──────┐ │
+│ ->       x          eeeeee   s    x    x       xx   eeeeeeeeeeee s   eees  x   x  x   x  │ boss │ │
+│           x    eeeeeeeeeeeee s     x    x      xx   eeeeeeeeeeee s   eees      x      x  └──────┘ │
+│          塔    eeeeeeeeeeeee     塔 塔                  x  x  x  s   eees      x      x    x   x  │
 │       eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee      │
 └───────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
  e  地面
  -> 主角機
