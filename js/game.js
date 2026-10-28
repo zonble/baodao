@@ -975,7 +975,6 @@ class Game {
       this.ctx.restore();
     }
   }
-  }
 
   drawHUD() {
     this.ctx.save();
