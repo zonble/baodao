@@ -132,8 +132,13 @@
 - **吃道具音效（playPowerup）**：正弦波 C5-E5-G5-C6 快速上行琶音。
 - **炸彈震撼音（playBomb）**：重低音震撼與巨型爆破混音。
 - **8-bit FM Chiptune 背景音樂**：
-  - 111 BPM 快速節奏、D 小調。
+  - 111 BPM 快速節奏、D 小調（未配置專屬 TMD 樂譜時之預設配樂）。
   - 三角波 Bass 聲道 + 方波主旋律/琶音聲道 + 噪聲脈衝打擊樂聲道。
+- **TMD (Timebase Mark Down) 專屬關卡音樂系統**：
+  - 專案支援由阿怪設計之 TMD 樂譜規格，透過 [`scripts/compile_tmd.py`](file:///Users/zonble/Work/baodao/scripts/compile_tmd.py) 將 `docs/level*.tmd` 自動編譯為輕量 Web Audio 即時音符序列模組 [`js/bgmData.js`](file:///Users/zonble/Work/baodao/js/bgmData.js)。
+  - **第一關【台北】**：[docs/level1.tmd](file:///Users/zonble/Work/baodao/docs/level1.tmd)（140 BPM，LevelA 輕快主題 + LevelB 雙音加厚變奏，雙軌複音合成）。
+  - **第二關【淡水】**：[docs/level2.tmd](file:///Users/zonble/Work/baodao/docs/level2.tmd)（140 BPM，以 `(3 -- 2)%(--)` 三連音切分韻律描繪關渡河畔夕照，搭配低音柱狀和弦）。
+  - 具備毫秒級無縫循環演奏（Seamless Lookahead Loop），關卡切換時自動無縫轉換對應配樂。
 
 ---
 

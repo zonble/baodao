@@ -186,24 +186,25 @@ class Game {
 
   startNewGame() {
     sounds.ensureContext();
-    sounds.startBgm();
     this.score = 0;
     this.enemiesDefeated = 0;
     this.initLevel(false);
     this.state = 'PLAYING';
     this.stageIntroTimer = 3.5;
+    sounds.startBgm(this.currentLevelIndex);
   }
 
   nextStage() {
     sounds.ensureContext();
-    sounds.startBgm();
     this.currentLevelIndex = (this.currentLevelIndex + 1) % LEVELS.length;
     this.initLevel(true); // Keep score, lives, weapon level, bombs!
     this.state = 'PLAYING';
+    sounds.startBgm(this.currentLevelIndex);
   }
 
   switchLevel(index) {
     sounds.ensureContext();
+    sounds.stopBgm();
     this.currentLevelIndex = index;
     this.initLevel(false);
     this.state = 'TITLE';

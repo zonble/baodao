@@ -1,4 +1,6 @@
 // Retro Web Audio API Synthesizer for 寶島風情畫
+import { TMD_BGM } from './bgmData.js';
+
 class SoundSystem {
   constructor() {
     this.ctx = null;
@@ -9,6 +11,7 @@ class SoundSystem {
     this.bgmPlaying = false;
     this.bgmTimer = null;
     this.bgmStep = 0;
+    this.currentStageIndex = 0;
   }
 
   init() {
@@ -280,11 +283,114 @@ class SoundSystem {
     });
   }
 
-  // 8-bit FM Chiptune Background Music Generator
-  startBgm() {
-    if (this.bgmPlaying) return;
+  // BGM Dispatcher: Prefers TMD Score if available, otherwise falls back to FM Chiptune
+  startBgm(stageIndex = 0) {
+    if (this.bgmPlaying && this.currentStageIndex === stageIndex) return;
+    this.stopBgm();
     this.ensureContext();
     this.bgmPlaying = true;
+    this.currentStageIndex = stageIndex;
+
+    if (TMD_BGM && TMD_BGM[stageIndex]) {
+      this.startTmdBgm(stageIndex);
+    } else {
+      this.startDefaultChiptuneBgm();
+    }
+  }
+
+  // TMD-Driven Web Audio Polyphonic Synthesizer
+  startTmdBgm(stageIndex) {
+    const bgmData = TMD_BGM[stageIndex];
+    if (!bgmData || !bgmData.notes || bgmData.notes.length === 0) {
+      this.startDefaultChiptuneBgm();
+      return;
+    }
+
+    const totalDur = bgmData.duration;
+    let scheduledUpTo = this.ctx.currentTime - 0.001;
+    const startCtxTime = this.ctx.currentTime;
+
+    const scheduleLoop = () => {
+      if (!this.bgmPlaying || this.currentStageIndex !== stageIndex) return;
+
+      if (!this.muted && this.ctx) {
+        const now = this.ctx.currentTime;
+        const lookAhead = 0.28;
+        const windowEnd = now + lookAhead;
+
+        // Relative timeline since startCtxTime
+        const relScheduledUpTo = Math.max(0, scheduledUpTo - startCtxTime);
+        const relWindowEnd = Math.max(0, windowEnd - startCtxTime);
+
+        const startCycle = Math.floor(relScheduledUpTo / totalDur);
+        const endCycle = Math.floor(relWindowEnd / totalDur);
+
+        for (let c = startCycle; c <= endCycle; c++) {
+          const cycleOffset = c * totalDur;
+          for (const n of bgmData.notes) {
+            const noteRelTime = cycleOffset + n.t;
+            if (noteRelTime > relScheduledUpTo && noteRelTime <= relWindowEnd) {
+              const noteAbsTime = startCtxTime + noteRelTime;
+              this.playTmdNote(n, noteAbsTime);
+            }
+          }
+        }
+
+        scheduledUpTo = windowEnd;
+      }
+
+      this.bgmTimer = setTimeout(scheduleLoop, 90);
+    };
+
+    scheduleLoop();
+  }
+
+  // Synthesize individual TMD note events with retro arcade tones
+  playTmdNote(n, t) {
+    if (this.muted || !this.ctx) return;
+    const dur = Math.max(0.08, n.dur);
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    if (n.trk === 1) {
+      // Track 1: Lead Melody Piano (Warm 8-bit square pulse with resonant filter)
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(n.freq, t);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2600, t);
+
+      const peakGain = (n.vel || 0.6) * 0.12;
+      gain.gain.setValueAtTime(peakGain, t);
+      gain.gain.exponentialRampToValueAtTime(0.003, t + dur);
+
+      osc.connect(filter);
+      filter.connect(gain);
+    } else {
+      // Track 2: Harmony / Bass Piano 2 (Warm triangle waves with round low end)
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(n.freq, t);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1600, t);
+
+      const peakGain = (n.vel || 0.5) * 0.17;
+      gain.gain.setValueAtTime(peakGain, t);
+      gain.gain.exponentialRampToValueAtTime(0.004, t + dur);
+
+      osc.connect(filter);
+      filter.connect(gain);
+    }
+
+    gain.connect(this.bgmGain);
+    osc.start(t);
+    osc.stop(t + dur + 0.05);
+  }
+
+  // 8-bit FM Chiptune Background Music Generator (Fallback)
+  startDefaultChiptuneBgm() {
     this.bgmStep = 0;
 
     // Fast 16-step bassline & arpeggio in D minor
