@@ -202,6 +202,39 @@ export class Bullet {
         ctx.beginPath();
         ctx.arc(screenX, this.y, 2, 0, Math.PI * 2);
         ctx.fill();
+      } else if (this.type === 'bullet' || this.type === 'qingji') {
+        // High-velocity Brass Handgun Cartridge / 慶記子彈
+        ctx.translate(screenX, this.y);
+        ctx.rotate(Math.atan2(this.vy, this.vx));
+        const bGrad = ctx.createLinearGradient(-8, 0, 8, 0);
+        bGrad.addColorStop(0, '#f39c12');
+        bGrad.addColorStop(0.5, '#f1c40f');
+        bGrad.addColorStop(1, '#ffffff');
+        ctx.fillStyle = bGrad;
+        ctx.shadowColor = '#f39c12';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.moveTo(8, 0);
+        ctx.lineTo(2, -4);
+        ctx.lineTo(-7, -4);
+        ctx.lineTo(-7, 4);
+        ctx.lineTo(2, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Primer rim
+        ctx.fillStyle = '#d35400';
+        ctx.fillRect(-8, -3, 2, 6);
+      } else if (this.type === 'sniper_bullet') {
+        // Heavy Armor-Piercing Mega Round (穿甲狙擊重彈)
+        ctx.translate(screenX, this.y);
+        ctx.rotate(Math.atan2(this.vy, this.vx));
+        ctx.fillStyle = '#ff3838';
+        ctx.shadowColor = '#ff3838';
+        ctx.shadowBlur = 14;
+        ctx.fillRect(-12, -4, 24, 8);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-8, -2, 16, 4);
       } else {
         // Standard energy bullet
         ctx.fillStyle = '#ff4757';
@@ -1887,6 +1920,9 @@ export class IronEggBoss {
 
 // Boss Factory
 export function createBoss(stageIndex, r, c) {
+  if (stageIndex === 3) {
+    return [new GiantGunBoss(r, c)];
+  }
   if (stageIndex === 2) {
     const b1 = new GongwanBoss(0, c, 'top');
     const b2 = new GongwanBoss(3, c, 'bottom');
@@ -2290,6 +2326,423 @@ export class GongwanBoss {
     ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(this.role === 'top' ? '★ 新竹彈力貢丸 ★' : '★ 新竹爆汁貢丸 ★', 0, -this.radius - 8);
+
+    ctx.restore();
+  }
+}
+
+// Stage 4 Boss: 超級大手槍魔王 - 台中慶記號 (GIANT HANDGUN BOSS)
+export class GiantGunBoss {
+  constructor(r, c) {
+    this.targetX = c * TILE_SIZE - 40;
+    this.x = this.targetX + 350;
+    this.y = r * TILE_SIZE - 20;
+    this.w = 190;
+    this.h = 130;
+    this.maxHp = 220;
+    this.hp = 220;
+    this.alive = true;
+    this.active = false;
+    this.entering = false;
+    this.baseY = this.y;
+    this.timer = 0;
+    this.attackTimer = 1.6;
+    this.attackPhase = 1;
+    this.enraged = false;
+    this.dying = false;
+    this.dyingTimer = 3.6;
+    this.scoreValue = 10000;
+    this.bossName = '超級大手槍魔王 - 台中慶記號';
+
+    this.recoilX = 0; // slide blowback displacement (px)
+    this.laserAimTimer = 0; // targeting laser countdown
+    this.isAiming = false;
+    this.muzzleFlash = 0; // muzzle flash visual countdown
+    this.cylinderAngle = 0; // revolver cylinder rotation
+    this.hammerCocked = false;
+  }
+
+  activate(camX) {
+    this.active = true;
+    this.entering = true;
+    this.x = camX + 850;
+    sounds.playWarning();
+  }
+
+  update(dt, camX, player, bullets, particles, onDefeated) {
+    if (!this.alive || !this.active) return;
+
+    if (this.dying) {
+      this.dyingTimer -= dt;
+      if (Math.random() < 0.8) {
+        sounds.playExplosion(Math.random() < 0.4);
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 280,
+          (Math.random() - 0.5) * 280,
+          Math.random() < 0.5 ? '#f39c12' : '#e74c3c',
+          6,
+          0.6
+        ));
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 200,
+          (Math.random() - 0.5) * 200,
+          '#f1c40f',
+          4,
+          0.5
+        ));
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 240,
+          (Math.random() - 0.5) * 240,
+          '#2c3e50',
+          5,
+          0.7
+        ));
+      }
+      if (this.dyingTimer <= 0) {
+        this.alive = false;
+        sounds.playVictory();
+        if (onDefeated) onDefeated();
+      }
+      return;
+    }
+
+    // Entrance slide animation
+    if (this.entering) {
+      this.x -= 140 * dt;
+      if (this.x <= camX + 590) {
+        this.x = camX + 590;
+        this.entering = false;
+      }
+      return;
+    }
+
+    this.timer += dt;
+
+    // Recoil recovery
+    if (this.recoilX > 0) {
+      this.recoilX = Math.max(0, this.recoilX - dt * 90);
+    }
+    if (this.muzzleFlash > 0) {
+      this.muzzleFlash -= dt;
+    }
+
+    // Smooth vertical tracking of player with sine oscillation
+    const targetY = Math.max(40, Math.min(320, player.y - 45));
+    const trackSpeed = this.enraged ? 3.0 : 2.0;
+    this.y += (targetY - this.y) * trackSpeed * dt;
+    this.y += Math.sin(this.timer * (this.enraged ? 4.5 : 2.5)) * 1.5;
+
+    // Check enrage state (< 50% HP)
+    if (this.hp <= this.maxHp * 0.5 && !this.enraged) {
+      this.enraged = true;
+      this.bossName = '超級大手槍魔王 - 台中慶記號 [狂暴狂掃 200%]';
+      sounds.playWarning();
+      for (let i = 0; i < 40; i++) {
+        particles.push(new Particle(
+          this.x + 20,
+          this.y + 40,
+          (Math.random() - 0.5) * 360,
+          (Math.random() - 0.5) * 360,
+          Math.random() < 0.5 ? '#f39c12' : '#ff4757',
+          5,
+          0.6
+        ));
+      }
+    }
+
+    // Attacks
+    this.attackTimer -= dt;
+    if (this.attackTimer <= 0.4 && !this.hammerCocked) {
+      this.hammerCocked = true;
+    }
+    if (this.attackTimer <= 0) {
+      this.executeAttack(player, bullets, particles);
+      this.hammerCocked = false;
+      this.attackTimer = this.enraged ? 1.1 : 1.9;
+    }
+  }
+
+  executeAttack(player, bullets, particles) {
+    sounds.playEnemyLaser();
+    const muzzleX = this.x - 10;
+    const muzzleY = this.y + 36;
+
+    this.recoilX = 22;
+    this.muzzleFlash = 0.15;
+    this.cylinderAngle += Math.PI / 3;
+
+    // Smoke particles from barrel
+    for (let i = 0; i < 8; i++) {
+      particles.push(new Particle(
+        muzzleX,
+        muzzleY,
+        -Math.random() * 80 - 40,
+        (Math.random() - 0.5) * 40,
+        'rgba(200, 200, 200, 0.7)',
+        4,
+        0.4
+      ));
+    }
+
+    this.attackPhase = (this.attackPhase % 3) + 1;
+
+    if (this.attackPhase === 1) {
+      // 1. 慶記連環快槍 (Rapid Brass Stream)
+      const count = this.enraged ? 7 : 5;
+      const baseA = Math.atan2(player.y - muzzleY, player.x - muzzleX);
+      for (let i = 0; i < count; i++) {
+        const offset = ((i / (count - 1)) - 0.5) * 0.65;
+        const a = baseA + offset;
+        const speed = 230;
+        bullets.push(new Bullet(muzzleX, muzzleY, Math.cos(a) * speed, Math.sin(a) * speed, true, 1, 'qingji'));
+      }
+    } else if (this.attackPhase === 2) {
+      // 2. 左輪輪轉六連發 (Cylinder Radial Burst)
+      const count = this.enraged ? 10 : 8;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2 + this.cylinderAngle;
+        bullets.push(new Bullet(muzzleX, muzzleY, Math.cos(a) * 180, Math.sin(a) * 180, true, 1, 'qingji'));
+      }
+    } else {
+      // 3. 紅外線雷射穿甲巨彈 (Laser Sniper Snipe)
+      const aimA = Math.atan2(player.y - muzzleY, player.x - muzzleX);
+      bullets.push(new Bullet(muzzleX, muzzleY, Math.cos(aimA) * 360, Math.sin(aimA) * 360, true, 2, 'sniper_bullet'));
+      bullets.push(new Bullet(muzzleX, muzzleY, Math.cos(aimA + 0.22) * 220, Math.sin(aimA + 0.22) * 220, true, 1, 'qingji'));
+      bullets.push(new Bullet(muzzleX, muzzleY, Math.cos(aimA - 0.22) * 220, Math.sin(aimA - 0.22) * 220, true, 1, 'qingji'));
+    }
+  }
+
+  takeDamage(amount, particles) {
+    if (!this.active || this.entering || this.dying) return false;
+    this.hp -= amount;
+    sounds.playHit();
+
+    // Metallic sparks
+    for (let i = 0; i < 4; i++) {
+      particles.push(new Particle(
+        this.x + 20 + Math.random() * (this.w - 40),
+        this.y + 20 + Math.random() * (this.h - 40),
+        (Math.random() - 0.5) * 130,
+        (Math.random() - 0.5) * 130,
+        Math.random() < 0.5 ? '#f39c12' : '#bdc3c7',
+        3.5,
+        0.25
+      ));
+    }
+
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.dying = true;
+      this.dyingTimer = 3.6;
+      sounds.playExplosion(true);
+      return true;
+    }
+    return false;
+  }
+
+  draw(ctx, camX) {
+    if (!this.alive || !this.active) return;
+    const sx = this.x - camX;
+    ctx.save();
+    ctx.translate(sx, this.y);
+
+    const muzzleX = 0;
+    const muzzleY = 36;
+
+    // 1. Red Laser Sight targeting beam pointing towards the left
+    ctx.save();
+    const flashAlpha = 0.35 + Math.sin(this.timer * 12) * 0.25;
+    ctx.strokeStyle = this.enraged ? `rgba(255, 71, 87, ${flashAlpha + 0.3})` : `rgba(255, 71, 87, ${flashAlpha})`;
+    ctx.lineWidth = this.enraged ? 2.5 : 1.5;
+    ctx.shadowColor = '#ff4757';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(muzzleX, muzzleY + 8);
+    ctx.lineTo(muzzleX - 580, muzzleY + 8);
+    ctx.stroke();
+    ctx.restore();
+
+    // 2. Muzzle Flash Animation
+    if (this.muzzleFlash > 0) {
+      ctx.save();
+      ctx.translate(muzzleX - 8, muzzleY);
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = '#f39c12';
+      ctx.shadowBlur = 18;
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#f1c40f';
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + this.timer * 8;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a) * 32, Math.sin(a) * 32);
+        ctx.lineTo(Math.cos(a + 0.3) * 10, Math.sin(a + 0.3) * 10);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // 3. Ergonomic Wood Grip Handle (木質握把)
+    ctx.save();
+    const gripGrad = ctx.createLinearGradient(120, 45, 175, 130);
+    gripGrad.addColorStop(0, '#592512');
+    gripGrad.addColorStop(0.5, '#78351b');
+    gripGrad.addColorStop(1, '#3b180d');
+    ctx.fillStyle = gripGrad;
+    ctx.strokeStyle = '#2b1007';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(125, 45);
+    ctx.bezierCurveTo(145, 45, 175, 70, 170, 125);
+    ctx.lineTo(135, 125);
+    ctx.bezierCurveTo(115, 95, 115, 70, 115, 60);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Grip texture / checkering pattern
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 1;
+    for (let g = 0; g < 5; g++) {
+      ctx.beginPath();
+      ctx.moveTo(125 + g * 8, 65);
+      ctx.lineTo(135 + g * 6, 115);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 4. Trigger & Trigger Guard (扳機與護弓)
+    ctx.save();
+    ctx.strokeStyle = '#7f8c8d';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(105, 70, 15, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+
+    // Trigger
+    ctx.fillStyle = '#bdc3c7';
+    ctx.beginPath();
+    ctx.moveTo(112, 60);
+    ctx.bezierCurveTo(110, 70, 105, 75, 100, 72);
+    ctx.lineTo(105, 60);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // 5. Hammer (擊錘)
+    ctx.save();
+    ctx.fillStyle = '#7f8c8d';
+    ctx.strokeStyle = '#2c3e50';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    const hammerAngle = this.hammerCocked ? 0.35 : -0.15;
+    ctx.translate(145, 25);
+    ctx.rotate(hammerAngle);
+    ctx.rect(-6, -14, 12, 16);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // 6. Gun Body Slide & Barrel (滑套與槍管 - 含後座力偏移)
+    ctx.save();
+    ctx.translate(this.recoilX, 0);
+
+    const slideGrad = ctx.createLinearGradient(0, 15, 0, 55);
+    if (this.enraged) {
+      slideGrad.addColorStop(0, '#7f1d1d');
+      slideGrad.addColorStop(0.5, '#450a0a');
+      slideGrad.addColorStop(1, '#1e1b4b');
+    } else {
+      slideGrad.addColorStop(0, '#95a5a6');
+      slideGrad.addColorStop(0.3, '#7f8c8d');
+      slideGrad.addColorStop(0.7, '#34495e');
+      slideGrad.addColorStop(1, '#2c3e50');
+    }
+
+    ctx.fillStyle = slideGrad;
+    ctx.strokeStyle = this.enraged ? '#ff4757' : '#bdc3c7';
+    ctx.lineWidth = 2.5;
+
+    // Main barrel & slide box
+    ctx.fillRect(0, 15, 145, 42);
+    ctx.strokeRect(0, 15, 145, 42);
+
+    // Front barrel muzzle crown
+    ctx.fillStyle = '#1e272e';
+    ctx.fillRect(0, 22, 14, 28);
+    ctx.strokeRect(0, 22, 14, 28);
+
+    // Front & Rear Sights (準星與照門)
+    ctx.fillStyle = this.enraged ? '#ff3838' : '#2ecc71';
+    ctx.fillRect(8, 8, 8, 7);
+    ctx.fillRect(135, 8, 8, 7);
+
+    // Slide serrations (滑套防滑紋)
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.lineWidth = 2;
+    for (let s = 0; s < 7; s++) {
+      ctx.beginPath();
+      ctx.moveTo(110 + s * 4, 18);
+      ctx.lineTo(110 + s * 4, 52);
+      ctx.stroke();
+    }
+
+    // Engraved Golden Title (慶記金字雕刻)
+    ctx.save();
+    ctx.fillStyle = '#f1c40f';
+    ctx.shadowColor = '#f39c12';
+    ctx.shadowBlur = 6;
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('★ 慶記 SPECIAL ★', 65, 36);
+    ctx.restore();
+
+    // Ejection port (拋殼窗)
+    ctx.fillStyle = '#1e272e';
+    ctx.fillRect(82, 18, 22, 12);
+    ctx.fillStyle = '#f1c40f';
+    ctx.fillRect(85, 20, 16, 8);
+
+    ctx.restore();
+
+    // 7. Revolver Cylinder Accent (左輪彈巢 / 慶記能量核心)
+    ctx.save();
+    ctx.translate(115, 36);
+    ctx.rotate(this.cylinderAngle);
+    ctx.fillStyle = '#2c3e50';
+    ctx.strokeStyle = '#f1c40f';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // 6 Chamber bullet tips
+    for (let c = 0; c < 6; c++) {
+      const a = (c / 6) * Math.PI * 2;
+      ctx.fillStyle = '#f1c40f';
+      ctx.beginPath();
+      ctx.arc(Math.cos(a) * 8, Math.sin(a) * 8, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // 8. Title Label Above Boss
+    ctx.fillStyle = this.enraged ? '#ff4757' : '#f1c40f';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('★ 台中特產 · 超級大手槍 ★', this.w / 2, 2);
 
     ctx.restore();
   }

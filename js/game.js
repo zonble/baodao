@@ -77,7 +77,8 @@ class Game {
     this.stageBackgrounds = [
       'assets/taipei_101_panorama.jpg',      // 第一關：台北市遠景 (台北101與台北盆地全景)
       'assets/tamsui_guandu_sunset.jpg',     // 第二關：淡水的夕陽與關渡大橋
-      'assets/hsinchu_science_park.jpg'      // 第三關：新竹科學園區 (晶圓科技廠空照景觀)
+      'assets/hsinchu_science_park.jpg',     // 第三關：新竹科學園區 (晶圓科技廠空照景觀)
+      'assets/taichung_greenway.jpg'         // 第四關：台中綠園道 (草悟道與市民廣場景觀)
     ];
     this.bgImage = new Image();
     this.bgLoaded = false;
@@ -152,13 +153,15 @@ class Game {
     if (lvlBtn) {
       if (this.currentLevelIndex === 0) lvlBtn.textContent = '🗺️ 第一關：台北';
       else if (this.currentLevelIndex === 1) lvlBtn.textContent = '🗺️ 第二關：淡水';
-      else lvlBtn.textContent = '🗺️ 第三關：新竹';
+      else if (this.currentLevelIndex === 2) lvlBtn.textContent = '🗺️ 第三關：新竹';
+      else lvlBtn.textContent = '🗺️ 第四關：台中';
     }
     const subtitle = document.querySelector('.subtitle');
     if (subtitle) {
       if (this.currentLevelIndex === 0) subtitle.textContent = 'STAGE 1: 台北空照 (LEVEL 1)';
       else if (this.currentLevelIndex === 1) subtitle.textContent = 'STAGE 2: 淡水夕照 (LEVEL 2)';
-      else subtitle.textContent = 'STAGE 3: 新竹科園 (LEVEL 3)';
+      else if (this.currentLevelIndex === 2) subtitle.textContent = 'STAGE 3: 新竹科園 (LEVEL 3)';
+      else subtitle.textContent = 'STAGE 4: 台中綠園道 (LEVEL 4)';
     }
   }
 
@@ -519,6 +522,9 @@ class Game {
       } else if (this.currentLevelIndex === 1) {
         this.floatingTexts.push(new FloatingText(this.cameraX + this.viewW / 2, 180, 'STAGE 2 CLEAR!', '#fbc531', 20));
         this.state = 'STAGE_CLEAR';
+      } else if (this.currentLevelIndex === 2) {
+        this.floatingTexts.push(new FloatingText(this.cameraX + this.viewW / 2, 180, 'STAGE 3 CLEAR!', '#fbc531', 20));
+        this.state = 'STAGE_CLEAR';
       } else {
         this.floatingTexts.push(new FloatingText(this.cameraX + this.viewW / 2, 180, '★★★ ALL STAGES CLEAR! ★★★', '#fbc531', 22));
         this.state = 'VICTORY';
@@ -786,6 +792,9 @@ class Game {
       } else if (this.currentLevelIndex === 2) {
         introTitle = '第三關：新竹科技園區 (LEVEL 3)';
         introSub = 'STAGE 3: HSINCHU SCIENCE PARK & FABS';
+      } else if (this.currentLevelIndex === 3) {
+        introTitle = '第四關：台中綠園道 (LEVEL 4)';
+        introSub = 'STAGE 4: TAICHUNG CALLIGRAPHY GREENWAY & CIVIC SQUARE';
       }
 
       this.ctx.fillStyle = '#00f2fe';
@@ -816,6 +825,9 @@ class Game {
       } else if (this.currentLevelIndex === 2) {
         warnTitle = '⚠ 警報！超大新竹貢丸雙子逼近中 ⚠';
         warnSub = 'WARNING: TWIN GIANT HSINCHU MEATBALLS APPROACHING';
+      } else if (this.currentLevelIndex === 3) {
+        warnTitle = '⚠ 警報！超級大手槍魔王來襲 ⚠';
+        warnSub = 'WARNING: GIANT PISTOL APPROACHING';
       }
 
       this.ctx.fillStyle = '#ff4757';
@@ -880,10 +892,15 @@ class Game {
       const barY = 40;
 
       // Label
-      this.ctx.fillStyle = isL1 ? '#ff9f43' : '#f6ad55';
+      let bossLabel = this.boss.bossName;
+      if (this.currentLevelIndex === 0) bossLabel = bossLabel || 'BOSS: 巨型珍珠奶茶魔王 - 寶島波霸號 (GIANT BOBA)';
+      else if (this.currentLevelIndex === 1) bossLabel = bossLabel || 'BOSS: 超大淡水鐵蛋魔王 - 阿婆黑金號 (IRON EGG)';
+      else if (this.currentLevelIndex === 3) bossLabel = bossLabel || 'BOSS: 超級大手槍魔王 - 台中慶記號 (GIANT HANDGUN)';
+
+      this.ctx.fillStyle = this.currentLevelIndex === 3 ? '#f1c40f' : (isL1 ? '#ff9f43' : '#f6ad55');
       this.ctx.font = 'bold 12px monospace';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText(this.boss.bossName || (isL1 ? 'BOSS: 巨型珍珠奶茶魔王 - 寶島波霸號 (GIANT BOBA)' : 'BOSS: 超大淡水鐵蛋魔王 - 阿婆黑金號 (IRON EGG)'), this.viewW / 2, barY - 6);
+      this.ctx.fillText(bossLabel, this.viewW / 2, barY - 6);
 
       // Frame
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
@@ -895,7 +912,11 @@ class Game {
       // Fill Gradient
       const ratio = Math.max(0, this.boss.hp / this.boss.maxHp);
       const grad = this.ctx.createLinearGradient(barX, barY, barX + barW, barY);
-      if (isL1) {
+      if (this.currentLevelIndex === 3) {
+        grad.addColorStop(0, '#ff4757');
+        grad.addColorStop(0.5, '#f39c12');
+        grad.addColorStop(1, '#f1c40f');
+      } else if (isL1) {
         grad.addColorStop(0, '#ff4757');
         grad.addColorStop(0.5, '#ffa502');
         grad.addColorStop(1, '#ffbe76');
@@ -925,6 +946,7 @@ class Game {
       let titleLevelStr = '第一關：台北上空 (LEVEL 1)';
       if (this.currentLevelIndex === 1) titleLevelStr = '第二關：淡水夕照 (LEVEL 2)';
       else if (this.currentLevelIndex === 2) titleLevelStr = '第三關：新竹科技園區 (LEVEL 3)';
+      else if (this.currentLevelIndex === 3) titleLevelStr = '第四關：台中綠園道 (LEVEL 4)';
 
       this.ctx.shadowBlur = 8;
       this.ctx.fillStyle = '#fbc531';
@@ -993,25 +1015,26 @@ class Game {
       this.ctx.restore();
     }
 
-    // STAGE CLEAR SCREEN (Clear Stage 1 -> Proceed to Stage 2, or Clear Stage 2 -> Proceed to Stage 3)
+    // STAGE CLEAR SCREEN (Stage 1 -> 2 -> 3 -> 4)
     if (this.state === 'STAGE_CLEAR') {
       this.ctx.save();
       this.ctx.fillStyle = 'rgba(5, 25, 45, 0.88)';
       this.ctx.fillRect(0, 0, this.viewW, this.viewH);
 
-      const isClearL1 = this.currentLevelIndex === 0;
+      const clearIdx = this.currentLevelIndex;
+      const stageName = `第${['一', '二', '三', '四'][clearIdx]}關`;
 
       this.ctx.fillStyle = '#fbc531';
       this.ctx.shadowColor = '#fbc531';
       this.ctx.shadowBlur = 20;
       this.ctx.font = 'bold 32px monospace';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText(isClearL1 ? '★ 第一關 突破成功！★' : '★ 第二關 突破成功！★', this.viewW / 2, 115);
+      this.ctx.fillText(`★ ${stageName} 突破成功！★`, this.viewW / 2, 115);
 
       this.ctx.shadowBlur = 0;
       this.ctx.fillStyle = '#00d2d3';
       this.ctx.font = '16px monospace';
-      this.ctx.fillText(isClearL1 ? 'STAGE 1 CLEAR - MISSION COMPLETE' : 'STAGE 2 CLEAR - MISSION COMPLETE', this.viewW / 2, 155);
+      this.ctx.fillText(`STAGE ${clearIdx + 1} CLEAR - MISSION COMPLETE`, this.viewW / 2, 155);
 
       this.ctx.fillStyle = '#ffffff';
       this.ctx.font = '15px monospace';
@@ -1025,19 +1048,23 @@ class Game {
       this.ctx.fillText('【 下一關情報 】', this.viewW / 2, 305);
       this.ctx.fillStyle = '#fbc531';
       this.ctx.font = '14px monospace';
-      if (isClearL1) {
+      if (clearIdx === 0) {
         this.ctx.fillText('第二關場景：淡水的夕陽與關渡大橋', this.viewW / 2, 332);
         this.ctx.fillText('守關魔王：超大淡水鐵蛋', this.viewW / 2, 356);
-      } else {
+      } else if (clearIdx === 1) {
         this.ctx.fillText('第三關場景：新竹科學園區科技廠房', this.viewW / 2, 332);
         this.ctx.fillText('守關魔王：超大新竹貢丸 x2 (彈力雙子)', this.viewW / 2, 356);
+      } else if (clearIdx === 2) {
+        this.ctx.fillText('第四關場景：台中綠園道 (草悟道與市民廣場)', this.viewW / 2, 332);
+        this.ctx.fillText('守關魔王：超級大手槍 (台中慶記號)', this.viewW / 2, 356);
       }
 
+      const nextNum = ['二', '三', '四'][clearIdx] || '四';
       const blink = Math.floor(Date.now() / 350) % 2 === 0;
       if (blink) {
         this.ctx.fillStyle = '#00f2fe';
         this.ctx.font = 'bold 18px monospace';
-        this.ctx.fillText(`▶ 按 空白鍵 或 點擊出擊 前往第${isClearL1 ? '二' : '三'}關 ◀`, this.viewW / 2, 415);
+        this.ctx.fillText(`▶ 按 空白鍵 或 點擊出擊 前往第${nextNum}關 ◀`, this.viewW / 2, 415);
       }
       this.ctx.restore();
     }
@@ -1058,6 +1085,7 @@ class Game {
       this.ctx.shadowBlur = 0;
       this.ctx.fillStyle = '#00d2d3';
       this.ctx.font = '16px monospace';
+      this.ctx.fillText('ALL 4 STAGES CLEARED - CONGRATULATIONS!', this.viewW / 2, 155);
       this.ctx.fillText('ALL 3 STAGES CLEARED - CONGRATULATIONS!', this.viewW / 2, 155);
 
       this.ctx.fillStyle = '#ffffff';
