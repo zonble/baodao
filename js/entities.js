@@ -309,6 +309,79 @@ export class Bullet {
         ctx.beginPath();
         ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
         ctx.fill();
+      } else if (this.type === 'sesame') {
+        // Golden-white Sesame Seed (香脆白芝麻散彈)
+        ctx.translate(screenX, this.y);
+        ctx.rotate(Math.atan2(this.vy, this.vx));
+        ctx.fillStyle = '#fff9e6';
+        ctx.shadowColor = '#fbc531';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 7, 3.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#f5cd79';
+        ctx.beginPath();
+        ctx.ellipse(1, 0, 3, 1.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (this.type === 'crispy_chunk') {
+        // Golden Fried Chicken Crunch Shrapnel (香脆炸雞排破片彈)
+        ctx.translate(screenX, this.y);
+        ctx.rotate(Date.now() * 0.009);
+        ctx.fillStyle = '#e67e22';
+        ctx.shadowColor = '#d35400';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(-6, -7);
+        ctx.lineTo(7, -4);
+        ctx.lineTo(8, 5);
+        ctx.lineTo(-2, 8);
+        ctx.lineTo(-7, 2);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner crunchy batter texture
+        ctx.fillStyle = '#f39c12';
+        ctx.beginPath();
+        ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (this.type === 'pork_chunk') {
+        // Savory Tender Braised Pork Nugget (赤肉羹肉塊重彈)
+        ctx.translate(screenX, this.y);
+        ctx.fillStyle = '#c0392b';
+        ctx.shadowColor = '#800000';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Juicy sheen highlight
+        ctx.fillStyle = '#e74c3c';
+        ctx.beginPath();
+        ctx.arc(-2, -2, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-2.5, -2.5, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (this.type === 'cilantro') {
+        // Fresh Green Cilantro Leaf (翠綠香菜散彈)
+        ctx.translate(screenX, this.y);
+        ctx.rotate(Date.now() * 0.007);
+        ctx.fillStyle = '#27ae60';
+        ctx.shadowColor = '#2ecc71';
+        ctx.shadowBlur = 8;
+        // 3-leaf clover shape
+        for (let i = 0; i < 3; i++) {
+          const a = (i / 3) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.arc(Math.cos(a) * 4.5, Math.sin(a) * 4.5, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = '#a8e6cf';
+        ctx.beginPath();
+        ctx.arc(0, 0, 2, 0, Math.PI * 2);
+        ctx.fill();
       } else {
         // Standard energy bullet
         ctx.fillStyle = '#ff4757';
@@ -1995,6 +2068,13 @@ export class IronEggBoss {
 
 // Boss Factory
 export function createBoss(stageIndex, r, c) {
+  if (stageIndex === 6) {
+    const b1 = new DanDanBurgerBoss(1, c, 'top');
+    const b2 = new DanDanVermicelliBoss(5, c, 'bottom');
+    b1.twin = b2;
+    b2.twin = b1;
+    return [b1, b2];
+  }
   if (stageIndex === 5) {
     return [new ChristmasTreeBoss(r, c)];
   }
@@ -3483,6 +3563,592 @@ export class ChristmasTreeBoss {
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('★ 新北地標 · 超大光雕耶誕樹 ★', centerX, 10);
+
+    ctx.restore();
+  }
+}
+
+// ==========================================
+// Stage 7 Boss: 超大丹丹漢堡魔王 (香脆雞腿堡 / 丹丹漢堡號)
+// ==========================================
+export class DanDanBurgerBoss {
+  constructor(r, c, role = 'top') {
+    this.role = role;
+    this.targetX = c * TILE_SIZE - 40;
+    this.x = this.targetX + 350;
+    this.baseY = 65;
+    this.y = this.baseY;
+    this.w = 145;
+    this.h = 130;
+    this.maxHp = 160;
+    this.hp = 160;
+    this.alive = true;
+    this.active = false;
+    this.entering = false;
+    this.timer = 0;
+    this.attackTimer = 1.8;
+    this.attackPhase = 1;
+    this.enraged = false;
+    this.dying = false;
+    this.dyingTimer = 3.5;
+    this.scoreValue = 8000;
+    this.bossName = '超大丹丹漢堡 (香脆雞腿堡)';
+    this.twin = null;
+
+    // Sesame seeds on top bun
+    this.sesameSeeds = [];
+    for (let i = 0; i < 22; i++) {
+      this.sesameSeeds.push({
+        rx: (Math.random() - 0.5) * 85,
+        ry: -15 + (Math.random() - 0.5) * 16,
+        rot: (Math.random() - 0.5) * 0.8
+      });
+    }
+  }
+
+  activate(camX) {
+    this.active = true;
+    this.entering = true;
+    this.x = camX + 850;
+    sounds.playWarning();
+  }
+
+  setEnraged() {
+    if (this.enraged || !this.alive || this.dying) return;
+    this.enraged = true;
+    this.bossName = '超大丹丹漢堡 (香脆雞腿堡·暴走 200%)';
+    sounds.playWarning();
+  }
+
+  update(dt, camX, player, bullets, particles, onDefeated) {
+    if (!this.alive || !this.active) return;
+
+    if (this.dying) {
+      this.dyingTimer -= dt;
+      if (Math.random() < 0.85) {
+        sounds.playExplosion(Math.random() < 0.4);
+        const colors = ['#f39c12', '#e67e22', '#2ecc71', '#fff9e6', '#e74c3c'];
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 260,
+          (Math.random() - 0.5) * 260,
+          colors[Math.floor(Math.random() * colors.length)],
+          6,
+          0.6
+        ));
+      }
+      if (this.dyingTimer <= 0) {
+        this.alive = false;
+        sounds.playVictory();
+        if (onDefeated) onDefeated();
+      }
+      return;
+    }
+
+    if (this.entering) {
+      this.x -= 160 * dt;
+      if (this.x <= camX + 590) {
+        this.x = camX + 590;
+        this.entering = false;
+      }
+      return;
+    }
+
+    this.timer += dt * 2.2;
+    this.y = this.baseY + Math.sin(this.timer) * 25;
+    this.x = (camX + 590) + Math.cos(this.timer * 0.8) * 15;
+
+    // Steam particles
+    if (Math.random() < 0.3) {
+      particles.push(new Particle(
+        this.x + 30 + Math.random() * 85,
+        this.y + 10,
+        (Math.random() - 0.5) * 25,
+        -Math.random() * 45 - 20,
+        '#ffffff',
+        2.5,
+        0.5
+      ));
+    }
+
+    this.attackTimer -= dt;
+    if (this.attackTimer <= 0) {
+      this.executeAttack(player, bullets, particles);
+      this.attackTimer = this.enraged ? 1.0 : 1.9;
+    }
+  }
+
+  executeAttack(player, bullets, particles) {
+    sounds.playEnemyLaser();
+    this.attackPhase = (this.attackPhase % 3) + 1;
+    const mouthX = this.x + 10;
+    const mouthY = this.y + 60;
+
+    if (this.attackPhase === 1) {
+      // 1. 芝麻連環破空彈 (Fast sesame burst towards player)
+      const count = this.enraged ? 9 : 7;
+      const baseA = Math.atan2(player.y - mouthY, player.x - mouthX);
+      for (let i = 0; i < count; i++) {
+        const offset = ((i / (count - 1)) - 0.5) * 0.55;
+        const a = baseA + offset;
+        const spd = this.enraged ? 250 : 210;
+        bullets.push(new Bullet(mouthX, mouthY, Math.cos(a) * spd, Math.sin(a) * spd, true, 1, 'sesame'));
+      }
+    } else if (this.attackPhase === 2) {
+      // 2. 香脆炸雞排散片 (Crispy crunch shrapnel)
+      const count = this.enraged ? 8 : 5;
+      for (let i = 0; i < count; i++) {
+        const a = Math.PI - 0.7 + (i / (count - 1)) * 1.4;
+        const spd = 180 + (i % 2) * 40;
+        bullets.push(new Bullet(mouthX, mouthY, Math.cos(a) * spd, Math.sin(a) * spd, true, 1, 'crispy_chunk'));
+      }
+    } else {
+      // 3. 特調美乃滋黏液彈 (Mayo stream)
+      const count = this.enraged ? 5 : 3;
+      for (let i = 0; i < count; i++) {
+        const a = Math.PI - 0.35 + (i - (count - 1) / 2) * 0.35;
+        bullets.push(new Bullet(mouthX, mouthY, Math.cos(a) * 190, Math.sin(a) * 190, true, 1, 'energy'));
+      }
+    }
+  }
+
+  takeDamage(amount, particles) {
+    if (!this.active || this.entering || this.dying) return false;
+    this.hp -= amount;
+    sounds.playHit();
+
+    const colors = ['#f39c12', '#fff9e6', '#2ecc71', '#e74c3c'];
+    for (let i = 0; i < 4; i++) {
+      particles.push(new Particle(
+        this.x + 20 + Math.random() * (this.w - 40),
+        this.y + 20 + Math.random() * (this.h - 40),
+        (Math.random() - 0.5) * 120,
+        (Math.random() - 0.5) * 120,
+        colors[Math.floor(Math.random() * colors.length)],
+        3.5,
+        0.25
+      ));
+    }
+
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.dying = true;
+      this.dyingTimer = 3.5;
+      sounds.playExplosion(true);
+      if (this.twin && this.twin.alive && !this.twin.dying) {
+        this.twin.setEnraged();
+      }
+      return true;
+    }
+    return false;
+  }
+
+  draw(ctx, camX) {
+    if (!this.alive || !this.active) return;
+    const sx = this.x - camX;
+    ctx.save();
+    ctx.translate(sx + this.w / 2, this.y + this.h / 2);
+
+    const tilt = Math.sin(this.timer) * 0.08;
+    ctx.rotate(tilt);
+
+    // Glowing Aura
+    ctx.shadowColor = this.enraged ? '#ff4757' : '#f39c12';
+    ctx.shadowBlur = this.enraged ? 22 : 12;
+
+    // 1. Bottom Bun
+    ctx.fillStyle = '#d35400';
+    ctx.beginPath();
+    ctx.ellipse(0, 38, 55, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#e67e22';
+    ctx.beginPath();
+    ctx.ellipse(0, 35, 53, 11, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Thick Crispy Chicken Cutlet
+    ctx.fillStyle = '#b33939';
+    ctx.beginPath();
+    ctx.ellipse(0, 18, 62, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Jagged crunchy crust
+    ctx.fillStyle = '#d35400';
+    ctx.beginPath();
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const rX = 58 + ((i % 2 === 0) ? 6 : -3);
+      const rY = 15 + ((i % 2 === 0) ? 4 : -2);
+      ctx.lineTo(Math.cos(a) * rX, 18 + Math.sin(a) * rY);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#f39c12';
+    ctx.beginPath();
+    ctx.ellipse(-2, 17, 54, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Tomato slice
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath();
+    ctx.ellipse(-10, 4, 48, 8, -0.05, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4. Mayo drip
+    ctx.fillStyle = '#fff9e6';
+    ctx.beginPath();
+    ctx.arc(-25, 10, 6, 0, Math.PI * 2);
+    ctx.arc(15, 12, 7, 0, Math.PI * 2);
+    ctx.arc(38, 8, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 5. Crispy Lettuce Leaf Layer
+    ctx.fillStyle = '#27ae60';
+    ctx.beginPath();
+    for (let i = 0; i < 12; i++) {
+      const a = Math.PI - 0.2 + (i / 11) * (Math.PI + 0.4);
+      const wave = Math.sin(i * 1.8 + this.timer * 3) * 4;
+      const lx = Math.cos(a) * (62 + wave);
+      const ly = -2 + Math.sin(a) * (14 + wave);
+      if (i === 0) ctx.moveTo(lx, ly);
+      else ctx.lineTo(lx, ly);
+    }
+    ctx.lineTo(55, 6);
+    ctx.lineTo(-55, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#2ecc71';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 56, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 6. Top Bun (Golden Toasted Dome)
+    ctx.fillStyle = '#d35400';
+    ctx.beginPath();
+    ctx.ellipse(0, -10, 56, 26, 0, Math.PI, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    const bunGrad = ctx.createLinearGradient(0, -36, 0, -8);
+    bunGrad.addColorStop(0, '#f5cd79');
+    bunGrad.addColorStop(0.4, '#e67e22');
+    bunGrad.addColorStop(1, '#d35400');
+    ctx.fillStyle = bunGrad;
+    ctx.beginPath();
+    ctx.ellipse(0, -10, 54, 24, 0, Math.PI, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // 7. Sesame Seeds on top bun
+    ctx.fillStyle = '#fff9e6';
+    ctx.shadowBlur = 0;
+    for (const s of this.sesameSeeds) {
+      ctx.save();
+      ctx.translate(s.rx, s.ry);
+      ctx.rotate(s.rot);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 3.5, 1.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 8. Label
+    ctx.fillStyle = this.enraged ? '#ff4757' : '#f1c40f';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('★ 丹丹漢堡 · 香脆雞腿堡 ★', 0, -42);
+
+    ctx.restore();
+  }
+}
+
+// ==========================================
+// Stage 7 Boss: 超大丹丹麵線魔王 (赤肉麵線羹 / 丹丹麵線號)
+// ==========================================
+export class DanDanVermicelliBoss {
+  constructor(r, c, role = 'bottom') {
+    this.role = role;
+    this.targetX = c * TILE_SIZE - 40;
+    this.x = this.targetX + 350;
+    this.baseY = 285;
+    this.y = this.baseY;
+    this.w = 145;
+    this.h = 130;
+    this.maxHp = 160;
+    this.hp = 160;
+    this.alive = true;
+    this.active = false;
+    this.entering = false;
+    this.timer = Math.PI;
+    this.attackTimer = 2.6;
+    this.attackPhase = 1;
+    this.enraged = false;
+    this.dying = false;
+    this.dyingTimer = 3.5;
+    this.scoreValue = 8000;
+    this.bossName = '超大丹丹麵線 (赤肉麵線羹)';
+    this.twin = null;
+
+    // Pork chunks in broth
+    this.porkChunks = [
+      { rx: -28, ry: -14, size: 9 },
+      { rx: 12, ry: -18, size: 10 },
+      { rx: 26, ry: -8, size: 8 },
+      { rx: -10, ry: -6, size: 11 }
+    ];
+  }
+
+  activate(camX) {
+    this.active = true;
+    this.entering = true;
+    this.x = camX + 850 + 40;
+    sounds.playWarning();
+  }
+
+  setEnraged() {
+    if (this.enraged || !this.alive || this.dying) return;
+    this.enraged = true;
+    this.bossName = '超大丹丹麵線 (赤肉麵線羹·暴走 200%)';
+    sounds.playWarning();
+  }
+
+  update(dt, camX, player, bullets, particles, onDefeated) {
+    if (!this.alive || !this.active) return;
+
+    if (this.dying) {
+      this.dyingTimer -= dt;
+      if (Math.random() < 0.85) {
+        sounds.playExplosion(Math.random() < 0.4);
+        const colors = ['#c0392b', '#800000', '#27ae60', '#f39c12', '#ffffff'];
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 260,
+          (Math.random() - 0.5) * 260,
+          colors[Math.floor(Math.random() * colors.length)],
+          6,
+          0.6
+        ));
+      }
+      if (this.dyingTimer <= 0) {
+        this.alive = false;
+        sounds.playVictory();
+        if (onDefeated) onDefeated();
+      }
+      return;
+    }
+
+    if (this.entering) {
+      this.x -= 160 * dt;
+      if (this.x <= camX + 590) {
+        this.x = camX + 590;
+        this.entering = false;
+      }
+      return;
+    }
+
+    this.timer += dt * 2.2;
+    this.y = this.baseY + Math.sin(this.timer) * 25;
+    this.x = (camX + 590) + Math.sin(this.timer * 0.8) * 15;
+
+    // Hot Soup Steam bubbles
+    if (Math.random() < 0.35) {
+      particles.push(new Particle(
+        this.x + 30 + Math.random() * 85,
+        this.y + 15,
+        (Math.random() - 0.5) * 25,
+        -Math.random() * 50 - 20,
+        Math.random() < 0.5 ? '#ffffff' : '#f5cd79',
+        3,
+        0.5
+      ));
+    }
+
+    this.attackTimer -= dt;
+    if (this.attackTimer <= 0) {
+      this.executeAttack(player, bullets, particles);
+      this.attackTimer = this.enraged ? 1.0 : 2.0;
+    }
+  }
+
+  executeAttack(player, bullets, particles) {
+    sounds.playEnemyLaser();
+    this.attackPhase = (this.attackPhase % 3) + 1;
+    const rimX = this.x + 10;
+    const rimY = this.y + 40;
+
+    if (this.attackPhase === 1) {
+      // 1. 赤肉羹重型砲 (Heavy pork chunks aimed at player)
+      const count = this.enraged ? 6 : 4;
+      const baseA = Math.atan2(player.y - rimY, player.x - rimX);
+      for (let i = 0; i < count; i++) {
+        const offset = ((i / (count - 1)) - 0.5) * 0.6;
+        const a = baseA + offset;
+        const spd = this.enraged ? 210 : 175;
+        bullets.push(new Bullet(rimX, rimY, Math.cos(a) * spd, Math.sin(a) * spd, true, 1, 'pork_chunk'));
+      }
+    } else if (this.attackPhase === 2) {
+      // 2. 烏醋酸辣旋渦流 (Black vinegar spiral vortex)
+      const count = this.enraged ? 10 : 7;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2 + this.timer * 2;
+        bullets.push(new Bullet(rimX, rimY, Math.cos(a) * 165, Math.sin(a) * 165, true, 1, 'energy'));
+      }
+    } else {
+      // 3. 翠綠香菜熱羹花 (Cilantro broth spray)
+      const count = this.enraged ? 9 : 6;
+      for (let i = 0; i < count; i++) {
+        const a = Math.PI - 0.8 + (i / (count - 1)) * 1.6;
+        bullets.push(new Bullet(rimX, rimY, Math.cos(a) * 180, Math.sin(a) * 180, true, 1, 'cilantro'));
+      }
+    }
+  }
+
+  takeDamage(amount, particles) {
+    if (!this.active || this.entering || this.dying) return false;
+    this.hp -= amount;
+    sounds.playHit();
+
+    const colors = ['#c0392b', '#800000', '#27ae60', '#f39c12'];
+    for (let i = 0; i < 4; i++) {
+      particles.push(new Particle(
+        this.x + 20 + Math.random() * (this.w - 40),
+        this.y + 20 + Math.random() * (this.h - 40),
+        (Math.random() - 0.5) * 120,
+        (Math.random() - 0.5) * 120,
+        colors[Math.floor(Math.random() * colors.length)],
+        3.5,
+        0.25
+      ));
+    }
+
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.dying = true;
+      this.dyingTimer = 3.5;
+      sounds.playExplosion(true);
+      if (this.twin && this.twin.alive && !this.twin.dying) {
+        this.twin.setEnraged();
+      }
+      return true;
+    }
+    return false;
+  }
+
+  draw(ctx, camX) {
+    if (!this.alive || !this.active) return;
+    const sx = this.x - camX;
+    ctx.save();
+    ctx.translate(sx + this.w / 2, this.y + this.h / 2);
+
+    const tilt = -Math.sin(this.timer) * 0.08;
+    ctx.rotate(tilt);
+
+    // Glowing Aura
+    ctx.shadowColor = this.enraged ? '#ff4757' : '#00cec9';
+    ctx.shadowBlur = this.enraged ? 22 : 12;
+
+    // 1. Takeout Paper Bowl Body (Traditional Red & White Striped Bowl)
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(-54, -10);
+    ctx.lineTo(-40, 48);
+    ctx.lineTo(40, 48);
+    ctx.lineTo(54, -10);
+    ctx.closePath();
+    ctx.fill();
+
+    // Red striped pattern
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath();
+    ctx.moveTo(-45, 12);
+    ctx.lineTo(-38, 42);
+    ctx.lineTo(-24, 42);
+    ctx.lineTo(-30, 12);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(-12, 12);
+    ctx.lineTo(-8, 42);
+    ctx.lineTo(8, 42);
+    ctx.lineTo(12, 12);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(30, 12);
+    ctx.lineTo(24, 42);
+    ctx.lineTo(38, 42);
+    ctx.lineTo(45, 12);
+    ctx.closePath();
+    ctx.fill();
+
+    // Golden Bowl Rim
+    ctx.fillStyle = '#f39c12';
+    ctx.beginPath();
+    ctx.ellipse(0, -10, 56, 17, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Thick Amber Broth (濃郁羹湯)
+    const brothGrad = ctx.createRadialGradient(0, -10, 5, 0, -10, 52);
+    brothGrad.addColorStop(0, '#d35400');
+    brothGrad.addColorStop(0.7, '#883a00');
+    brothGrad.addColorStop(1, '#532200');
+    ctx.fillStyle = brothGrad;
+    ctx.beginPath();
+    ctx.ellipse(0, -10, 52, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Vermicelli Noodle Texture Lines (絲絲麵線)
+    ctx.strokeStyle = '#f5cd79';
+    ctx.lineWidth = 1.2;
+    ctx.shadowBlur = 0;
+    for (let i = 0; i < 7; i++) {
+      ctx.beginPath();
+      const yOff = -16 + i * 2.2;
+      ctx.moveTo(-40 + (i % 3) * 6, yOff);
+      ctx.quadraticCurveTo(0, yOff + 4, 38 - (i % 2) * 5, yOff);
+      ctx.stroke();
+    }
+
+    // 4. Black Vinegar Swirl (特調烏醋)
+    ctx.strokeStyle = '#2c1200';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.arc(-8, -11, 14, 0.4, Math.PI * 1.3);
+    ctx.stroke();
+
+    // 5. Juicy Pork Meat Chunks (赤肉塊)
+    for (const p of this.porkChunks) {
+      ctx.fillStyle = '#800000';
+      ctx.beginPath();
+      ctx.arc(p.rx, p.ry, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#c0392b';
+      ctx.beginPath();
+      ctx.arc(p.rx - 1.5, p.ry - 1.5, p.size * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 6. Fresh Cilantro / Coriander Cluster (翠綠香菜)
+    ctx.fillStyle = '#27ae60';
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(Math.cos(a) * 9, -11 + Math.sin(a) * 5, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#2ecc71';
+    ctx.beginPath();
+    ctx.arc(0, -11, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 7. Label
+    ctx.fillStyle = this.enraged ? '#ff4757' : '#00cec9';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('★ 丹丹麵線 · 赤肉麵線羹 ★', 0, 62);
 
     ctx.restore();
   }

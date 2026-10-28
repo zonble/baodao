@@ -80,7 +80,8 @@ class Game {
       'assets/hsinchu_science_park.jpg',     // 第三關：新竹科學園區 (晶圓科技廠空照景觀)
       'assets/taichung_greenway.jpg',        // 第四關：台中綠園道 (草悟道與市民廣場景觀)
       'assets/taoyuan_aerotropolis.jpg',     // 第五關：桃園航空城 (桃園國際機場與跑道景觀)
-      'assets/new_taipei_christmas.jpg'      // 第六關：新北耶誕城 (市民廣場光雕夜景)
+      'assets/new_taipei_christmas.jpg',     // 第六關：新北耶誕城 (市民廣場光雕夜景)
+      'assets/kaohsiung_85_tower.jpg'        // 第七關：高雄八五大樓 (高雄港與港都天際線)
     ];
     this.bgImage = new Image();
     this.bgLoaded = false;
@@ -160,7 +161,8 @@ class Game {
       else if (this.currentLevelIndex === 2) lvlBtn.textContent = '🗺️ 第三關：新竹';
       else if (this.currentLevelIndex === 3) lvlBtn.textContent = '🗺️ 第四關：台中';
       else if (this.currentLevelIndex === 4) lvlBtn.textContent = '🗺️ 第五關：桃園';
-      else lvlBtn.textContent = '🗺️ 第六關：新北';
+      else if (this.currentLevelIndex === 5) lvlBtn.textContent = '🗺️ 第六關：新北';
+      else lvlBtn.textContent = '🗺️ 第七關：高雄';
     }
     const subtitle = document.querySelector('.subtitle');
     if (subtitle) {
@@ -169,7 +171,8 @@ class Game {
       else if (this.currentLevelIndex === 2) subtitle.textContent = 'STAGE 3: 新竹科園 (LEVEL 3)';
       else if (this.currentLevelIndex === 3) subtitle.textContent = 'STAGE 4: 台中綠園道 (LEVEL 4)';
       else if (this.currentLevelIndex === 4) subtitle.textContent = 'STAGE 5: 桃園航空城 (LEVEL 5)';
-      else subtitle.textContent = 'STAGE 6: 新北耶誕城 (LEVEL 6)';
+      else if (this.currentLevelIndex === 5) subtitle.textContent = 'STAGE 6: 新北耶誕城 (LEVEL 6)';
+      else subtitle.textContent = 'STAGE 7: 高雄八五大樓 (LEVEL 7)';
     }
   }
 
@@ -539,8 +542,11 @@ class Game {
       } else if (this.currentLevelIndex === 4) {
         this.floatingTexts.push(new FloatingText(this.cameraX + this.viewW / 2, 180, 'STAGE 5 CLEAR!', '#fbc531', 20));
         this.state = 'STAGE_CLEAR';
+      } else if (this.currentLevelIndex === 5) {
+        this.floatingTexts.push(new FloatingText(this.cameraX + this.viewW / 2, 180, 'STAGE 6 CLEAR!', '#fbc531', 20));
+        this.state = 'STAGE_CLEAR';
       } else {
-        this.floatingTexts.push(new FloatingText(this.cameraX + this.viewW / 2, 180, '★★★ ALL 6 STAGES CLEAR! ★★★', '#fbc531', 22));
+        this.floatingTexts.push(new FloatingText(this.cameraX + this.viewW / 2, 180, '★★★ ALL 7 STAGES CLEAR! ★★★', '#fbc531', 22));
         this.state = 'VICTORY';
       }
     }
@@ -815,6 +821,9 @@ class Game {
       } else if (this.currentLevelIndex === 5) {
         introTitle = '第六關：新北耶誕城 (LEVEL 6)';
         introSub = 'STAGE 6: NEW TAIPEI CITY CHRISTMASLAND & PLAZA';
+      } else if (this.currentLevelIndex === 6) {
+        introTitle = '第七關：高雄港灣與八五大樓 (LEVEL 7)';
+        introSub = 'STAGE 7: KAOHSIUNG HARBOR & 85 SKY TOWER';
       }
 
       this.ctx.fillStyle = '#00f2fe';
@@ -854,6 +863,9 @@ class Game {
       } else if (this.currentLevelIndex === 5) {
         warnTitle = '⚠ 警報！超大光雕耶誕樹魔王來襲 ⚠';
         warnSub = 'WARNING: GIANT GLOWING CHRISTMAS TREE APPROACHING';
+      } else if (this.currentLevelIndex === 6) {
+        warnTitle = '⚠ 警報！超大丹丹漢堡與麵線羹雙霸來襲 ⚠';
+        warnSub = 'WARNING: GIANT DANDAN BURGER & VERMICELLI DUO APPROACHING';
       }
 
       this.ctx.fillStyle = '#ff4757';
@@ -986,6 +998,7 @@ class Game {
       else if (this.currentLevelIndex === 3) titleLevelStr = '第四關：台中綠園道 (LEVEL 4)';
       else if (this.currentLevelIndex === 4) titleLevelStr = '第五關：桃園航空城 (LEVEL 5)';
       else if (this.currentLevelIndex === 5) titleLevelStr = '第六關：新北耶誕城 (LEVEL 6)';
+      else if (this.currentLevelIndex === 6) titleLevelStr = '第七關：高雄港灣與八五大樓 (LEVEL 7)';
 
       this.ctx.shadowBlur = 8;
       this.ctx.fillStyle = '#fbc531';
@@ -1054,14 +1067,14 @@ class Game {
       this.ctx.restore();
     }
 
-    // STAGE CLEAR SCREEN (Stage 1 -> 2 -> 3 -> 4 -> 5)
+    // STAGE CLEAR SCREEN (Stage 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7)
     if (this.state === 'STAGE_CLEAR') {
       this.ctx.save();
       this.ctx.fillStyle = 'rgba(5, 25, 45, 0.88)';
       this.ctx.fillRect(0, 0, this.viewW, this.viewH);
 
       const clearIdx = this.currentLevelIndex;
-      const stageName = `第${['一', '二', '三', '四', '五', '六'][clearIdx]}關`;
+      const stageName = `第${['一', '二', '三', '四', '五', '六', '七'][clearIdx]}關`;
 
       this.ctx.fillStyle = '#fbc531';
       this.ctx.shadowColor = '#fbc531';
@@ -1102,9 +1115,12 @@ class Game {
       } else if (clearIdx === 4) {
         this.ctx.fillText('第六關場景：新北歡樂耶誕城 (市民廣場光雕夜景)', this.viewW / 2, 332);
         this.ctx.fillText('守關魔王：超大光雕耶誕樹 (新北竹筍號)', this.viewW / 2, 356);
+      } else if (clearIdx === 5) {
+        this.ctx.fillText('第七關場景：高雄港灣與八五大樓 (港都天際線)', this.viewW / 2, 332);
+        this.ctx.fillText('守關魔王：超大丹丹漢堡 x 超大丹丹麵線羹 (南部速食雙霸)', this.viewW / 2, 356);
       }
 
-      const nextNum = ['二', '三', '四', '五', '六'][clearIdx] || '六';
+      const nextNum = ['二', '三', '四', '五', '六', '七'][clearIdx] || '七';
       const blink = Math.floor(Date.now() / 350) % 2 === 0;
       if (blink) {
         this.ctx.fillStyle = '#00f2fe';
@@ -1130,7 +1146,7 @@ class Game {
       this.ctx.shadowBlur = 0;
       this.ctx.fillStyle = '#00d2d3';
       this.ctx.font = '16px monospace';
-      this.ctx.fillText('ALL 6 STAGES CLEARED - CONGRATULATIONS!', this.viewW / 2, 155);
+      this.ctx.fillText('ALL 7 STAGES CLEARED - CONGRATULATIONS!', this.viewW / 2, 155);
 
       this.ctx.fillStyle = '#ffffff';
       this.ctx.font = '15px monospace';
