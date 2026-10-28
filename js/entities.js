@@ -235,6 +235,41 @@ export class Bullet {
         ctx.fillRect(-12, -4, 24, 8);
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(-8, -2, 16, 4);
+      } else if (this.type === 'turbo_ring') {
+        // Jet Turbofan Vortex Ring (渦輪渦流噴射環)
+        ctx.translate(screenX, this.y);
+        ctx.rotate(Math.atan2(this.vy, this.vx));
+        ctx.strokeStyle = '#00d2d3';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = '#00f2fe';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 10, 6, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 3, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (this.type === 'beacon') {
+        // ILS Runway Navigation Guidance Pulse (跑道導航導引光球)
+        ctx.fillStyle = '#2ed573';
+        ctx.shadowColor = '#7bed9f';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(screenX, this.y, 6.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(46, 213, 115, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(screenX, this.y, 11, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(screenX, this.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
       } else {
         // Standard energy bullet
         ctx.fillStyle = '#ff4757';
@@ -1920,6 +1955,9 @@ export class IronEggBoss {
 
 // Boss Factory
 export function createBoss(stageIndex, r, c) {
+  if (stageIndex === 4) {
+    return [new GiantAirlinerBoss(r, c)];
+  }
   if (stageIndex === 3) {
     return [new GiantGunBoss(r, c)];
   }
@@ -2743,6 +2781,354 @@ export class GiantGunBoss {
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('★ 台中特產 · 超級大手槍 ★', this.w / 2, 2);
+
+    ctx.restore();
+  }
+}
+
+// Stage 5 Boss: 超大巨無霸客機 - 桃園之翼號 (GIANT JUMBO JET AIRLINER BOSS)
+export class GiantAirlinerBoss {
+  constructor(r, c) {
+    this.targetX = c * TILE_SIZE - 40;
+    this.x = this.targetX + 350;
+    this.y = r * TILE_SIZE - 25;
+    this.w = 230;
+    this.h = 145;
+    this.maxHp = 250;
+    this.hp = 250;
+    this.alive = true;
+    this.active = false;
+    this.entering = false;
+    this.baseY = this.y;
+    this.timer = 0;
+    this.attackTimer = 1.6;
+    this.attackPhase = 1;
+    this.enraged = false;
+    this.dying = false;
+    this.dyingTimer = 3.8;
+    this.scoreValue = 12000;
+    this.bossName = '超大巨無霸客機 - 桃園之翼號';
+
+    this.engines = [
+      { x: 30, y: 35 },
+      { x: 60, y: 55 },
+      { x: 60, y: 90 },
+      { x: 30, y: 110 }
+    ];
+  }
+
+  activate(camX) {
+    this.active = true;
+    this.entering = true;
+    this.x = camX + 850;
+    sounds.playWarning();
+  }
+
+  update(dt, camX, player, bullets, particles, onDefeated) {
+    if (!this.alive || !this.active) return;
+
+    if (this.dying) {
+      this.dyingTimer -= dt;
+      if (Math.random() < 0.85) {
+        sounds.playExplosion(Math.random() < 0.4);
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 300,
+          (Math.random() - 0.5) * 300,
+          Math.random() < 0.5 ? '#00f2fe' : '#ff4757',
+          6,
+          0.65
+        ));
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 220,
+          (Math.random() - 0.5) * 220,
+          '#ffffff',
+          4,
+          0.5
+        ));
+      }
+      if (this.dyingTimer <= 0) {
+        this.alive = false;
+        sounds.playVictory();
+        if (onDefeated) onDefeated();
+      }
+      return;
+    }
+
+    // Entrance slide animation
+    if (this.entering) {
+      this.x -= 140 * dt;
+      if (this.x <= camX + 570) {
+        this.x = camX + 570;
+        this.entering = false;
+      }
+      return;
+    }
+
+    this.timer += dt;
+
+    // Aerodynamic flight heave oscillation
+    const heaveSpeed = this.enraged ? 2.6 : 1.8;
+    this.y = this.baseY + Math.sin(this.timer * heaveSpeed) * 45;
+
+    // Turbofan jet engine trails
+    if (Math.random() < 0.6) {
+      for (const eng of this.engines) {
+        particles.push(new Particle(
+          this.x + eng.x,
+          this.y + eng.y,
+          -Math.random() * 80 - 60,
+          (Math.random() - 0.5) * 15,
+          this.enraged ? '#ff4757' : '#00d2d3',
+          3.5,
+          0.3
+        ));
+      }
+    }
+
+    // Check enrage state (< 50% HP)
+    if (this.hp <= this.maxHp * 0.5 && !this.enraged) {
+      this.enraged = true;
+      this.bossName = '超大巨無霸客機 - 桃園之翼號 [滿載超音速 200%]';
+      sounds.playWarning();
+      for (let i = 0; i < 45; i++) {
+        particles.push(new Particle(
+          this.x + 30,
+          this.y + 70,
+          (Math.random() - 0.5) * 380,
+          (Math.random() - 0.5) * 380,
+          Math.random() < 0.5 ? '#00f2fe' : '#eb4d4b',
+          5.5,
+          0.7
+        ));
+      }
+    }
+
+    // Attacks
+    this.attackTimer -= dt;
+    if (this.attackTimer <= 0) {
+      this.executeAttack(player, bullets, particles);
+      this.attackTimer = this.enraged ? 1.1 : 1.8;
+    }
+  }
+
+  executeAttack(player, bullets, particles) {
+    sounds.playEnemyLaser();
+    this.attackPhase = (this.attackPhase % 3) + 1;
+
+    if (this.attackPhase === 1) {
+      // 1. 四聯渦輪渦流噴射 (Quad Turbofan Vortex Jet)
+      for (const eng of this.engines) {
+        const muzzleX = this.x + eng.x;
+        const muzzleY = this.y + eng.y;
+        const a = Math.atan2(player.y - muzzleY, player.x - muzzleX);
+        bullets.push(new Bullet(muzzleX, muzzleY, Math.cos(a) * 230, Math.sin(a) * 230, true, 1, 'turbo_ring'));
+      }
+    } else if (this.attackPhase === 2) {
+      // 2. 跑道導航導引光球矩陣 (Runway Beacon Matrix)
+      const count = this.enraged ? 8 : 6;
+      for (let i = 0; i < count; i++) {
+        const offset = ((i / (count - 1)) - 0.5) * 0.9;
+        const a = Math.PI + offset;
+        const speed = 190;
+        bullets.push(new Bullet(this.x + 20, this.y + 70, Math.cos(a) * speed, Math.sin(a) * speed, true, 1, 'beacon'));
+      }
+    } else {
+      // 3. 超音速穿透巡航 (Supersonic Flak Stream)
+      const noseX = this.x - 10;
+      const noseY = this.y + 70;
+      const aimA = Math.atan2(player.y - noseY, player.x - noseX);
+      bullets.push(new Bullet(noseX, noseY, Math.cos(aimA) * 350, Math.sin(aimA) * 350, true, 2, 'turbo_ring'));
+      bullets.push(new Bullet(noseX, noseY, Math.cos(aimA + 0.25) * 220, Math.sin(aimA + 0.25) * 220, true, 1, 'beacon'));
+      bullets.push(new Bullet(noseX, noseY, Math.cos(aimA - 0.25) * 220, Math.sin(aimA - 0.25) * 220, true, 1, 'beacon'));
+    }
+  }
+
+  takeDamage(amount, particles) {
+    if (!this.active || this.entering || this.dying) return false;
+    this.hp -= amount;
+    sounds.playHit();
+
+    for (let i = 0; i < 4; i++) {
+      particles.push(new Particle(
+        this.x + 20 + Math.random() * (this.w - 40),
+        this.y + 20 + Math.random() * (this.h - 40),
+        (Math.random() - 0.5) * 120,
+        (Math.random() - 0.5) * 120,
+        Math.random() < 0.5 ? '#00f2fe' : '#ffffff',
+        3.5,
+        0.25
+      ));
+    }
+
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.dying = true;
+      this.dyingTimer = 3.8;
+      sounds.playExplosion(true);
+      return true;
+    }
+    return false;
+  }
+
+  draw(ctx, camX) {
+    if (!this.alive || !this.active) return;
+    const sx = this.x - camX;
+    ctx.save();
+    ctx.translate(sx, this.y);
+
+    const pitch = Math.sin(this.timer * 1.8) * 0.04;
+    ctx.rotate(pitch);
+
+    // 1. Jet Engine Exhaust Flames & Trails
+    for (const eng of this.engines) {
+      ctx.save();
+      ctx.translate(eng.x, eng.y);
+      const flameLen = this.enraged ? 28 : 18;
+      const fGrad = ctx.createLinearGradient(0, 0, -flameLen, 0);
+      if (this.enraged) {
+        fGrad.addColorStop(0, '#ffffff');
+        fGrad.addColorStop(0.3, '#ffa502');
+        fGrad.addColorStop(1, 'rgba(255, 71, 87, 0)');
+      } else {
+        fGrad.addColorStop(0, '#ffffff');
+        fGrad.addColorStop(0.3, '#00f2fe');
+        fGrad.addColorStop(1, 'rgba(0, 210, 211, 0)');
+      }
+      ctx.fillStyle = fGrad;
+      ctx.beginPath();
+      ctx.moveTo(0, -6);
+      ctx.lineTo(-flameLen, 0);
+      ctx.lineTo(0, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 2. Wings (Swept-back Jet Wings)
+    ctx.fillStyle = '#cbd5e1';
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(40, 70);
+    ctx.lineTo(150, 15);
+    ctx.lineTo(190, 25);
+    ctx.lineTo(120, 70);
+    ctx.lineTo(190, 120);
+    ctx.lineTo(150, 130);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // 3. 4 Turbofan Pods
+    for (const eng of this.engines) {
+      ctx.fillStyle = '#475569';
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(eng.x - 12, eng.y - 8, 26, 16, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      // Turbine spinner core
+      ctx.fillStyle = this.enraged ? '#ff4757' : '#00f2fe';
+      ctx.beginPath();
+      ctx.arc(eng.x - 12, eng.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 4. Main Jumbo Jet Fuselage (Boeing 747 Double-deck Hump)
+    ctx.save();
+    ctx.shadowColor = this.enraged ? 'rgba(255, 71, 87, 0.6)' : 'rgba(0, 242, 254, 0.45)';
+    ctx.shadowBlur = 16;
+
+    const fuseGrad = ctx.createLinearGradient(0, 40, 0, 100);
+    fuseGrad.addColorStop(0, '#ffffff');
+    fuseGrad.addColorStop(0.4, '#f1f5f9');
+    fuseGrad.addColorStop(0.8, '#e2e8f0');
+    fuseGrad.addColorStop(1, '#94a3b8');
+
+    ctx.fillStyle = fuseGrad;
+    ctx.strokeStyle = this.enraged ? '#ff4757' : '#00d2d3';
+    ctx.lineWidth = 2.5;
+
+    ctx.beginPath();
+    // Nose cone pointing left
+    ctx.moveTo(10, 72);
+    ctx.bezierCurveTo(15, 55, 45, 42, 85, 42); // Upper deck hump
+    ctx.lineTo(200, 48); // Tail top
+    ctx.lineTo(225, 20); // Vertical stabilizer tip
+    ctx.lineTo(225, 95); // Tail bottom
+    ctx.lineTo(170, 95);
+    ctx.bezierCurveTo(100, 95, 30, 85, 10, 72); // Underside
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // 5. Airline Livery Ribbons (紅藍翱翔彩帶)
+    ctx.fillStyle = '#eb4d4b';
+    ctx.beginPath();
+    ctx.moveTo(25, 70);
+    ctx.lineTo(200, 68);
+    ctx.lineTo(195, 74);
+    ctx.lineTo(25, 76);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#1e3799';
+    ctx.beginPath();
+    ctx.moveTo(35, 76);
+    ctx.lineTo(195, 74);
+    ctx.lineTo(190, 80);
+    ctx.lineTo(35, 82);
+    ctx.closePath();
+    ctx.fill();
+
+    // 6. Cockpit Windshield (座艙擋風玻璃)
+    ctx.fillStyle = '#00f2fe';
+    ctx.shadowColor = '#00f2fe';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(22, 58);
+    ctx.lineTo(38, 52);
+    ctx.lineTo(40, 58);
+    ctx.lineTo(26, 64);
+    ctx.closePath();
+    ctx.fill();
+
+    // Upper & Lower Passenger Windows
+    ctx.fillStyle = '#334155';
+    ctx.shadowBlur = 0;
+    for (let w = 0; w < 12; w++) {
+      ctx.fillRect(50 + w * 11, 56, 5, 5); // Upper deck
+      ctx.fillRect(40 + w * 12, 64, 5, 5); // Main deck
+    }
+
+    // 7. Tail Plum Blossom Crest (尾翼梅花標誌)
+    ctx.save();
+    ctx.translate(212, 38);
+    ctx.fillStyle = '#eb4d4b';
+    for (let p = 0; p < 5; p++) {
+      const a = (p / 5) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(Math.cos(a) * 6, Math.sin(a) * 6, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#fbc531';
+    ctx.beginPath();
+    ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 8. Title Banner Above Airliner
+    ctx.fillStyle = this.enraged ? '#ff4757' : '#00f2fe';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('★ 桃園航空城 · 巨無霸客機 ★', this.w / 2, 8);
 
     ctx.restore();
   }
