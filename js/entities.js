@@ -100,18 +100,51 @@ export class Bullet {
     const screenX = this.x - camX;
     ctx.save();
     if (this.isEnemy) {
-      ctx.fillStyle = '#ff4757';
-      ctx.shadowColor = '#ff6b81';
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.arc(screenX, this.y, 5, 0, Math.PI * 2);
-      ctx.fill();
+      if (this.type === 'boba') {
+        // Giant Boba (珍珠彈)
+        ctx.fillStyle = '#1e1010';
+        ctx.shadowColor = '#000000';
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(screenX, this.y, 7, 0, Math.PI * 2);
+        ctx.fill();
 
-      // Bright inner core
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(screenX, this.y, 2.5, 0, Math.PI * 2);
-      ctx.fill();
+        // Brown glossy ring
+        ctx.strokeStyle = '#4a2818';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // White reflection specular dot
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.beginPath();
+        ctx.arc(screenX - 2.5, this.y - 2.5, 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (this.type === 'ice_cube') {
+        // Rotating Ice Cube (冰塊彈)
+        ctx.translate(screenX, this.y);
+        ctx.rotate(Date.now() * 0.005);
+        ctx.fillStyle = 'rgba(164, 225, 255, 0.85)';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = '#00d2d3';
+        ctx.shadowBlur = 8;
+        ctx.fillRect(-6, -6, 12, 12);
+        ctx.strokeRect(-6, -6, 12, 12);
+      } else {
+        // Standard energy bullet
+        ctx.fillStyle = '#ff4757';
+        ctx.shadowColor = '#ff6b81';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(screenX, this.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bright inner core
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(screenX, this.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
     } else {
       ctx.shadowColor = '#00f2fe';
       ctx.shadowBlur = 10;
@@ -960,27 +993,46 @@ export class FloatingText {
   }
 }
 
-// Stage 1 Boss: 寶島巨型機甲空母 - 鯤鵬號 (KUN-PENG)
+// Stage 1 Boss: 巨型珍珠奶茶魔王 - 寶島波霸號 (GIANT BOBA BOSS)
 export class Boss {
   constructor(r, c) {
-    this.targetX = c * TILE_SIZE - 60;
-    this.x = this.targetX + 300; // Starts off-screen right
-    this.y = r * TILE_SIZE - 20;
-    this.w = 200;
-    this.h = 160;
-    this.maxHp = 140;
-    this.hp = 140;
+    this.targetX = c * TILE_SIZE - 40;
+    this.x = this.targetX + 350; // Starts off-screen right
+    this.y = r * TILE_SIZE - 40;
+    this.w = 170;
+    this.h = 220;
+    this.maxHp = 150;
+    this.hp = 150;
     this.alive = true;
     this.active = false;
     this.entering = false;
     this.baseY = this.y;
     this.timer = 0;
-    this.attackTimer = 2.4;
+    this.attackTimer = 2.0;
     this.attackPhase = 1;
     this.enraged = false;
     this.dying = false;
-    this.dyingTimer = 3.0;
-    this.scoreValue = 5000;
+    this.dyingTimer = 3.2;
+    this.scoreValue = 6000;
+    this.strawFlash = 0;
+
+    // Generate fixed random positions for boba pearls inside the cup bottom
+    this.pearls = [];
+    for (let i = 0; i < 32; i++) {
+      this.pearls.push({
+        x: 35 + Math.random() * 100,
+        y: 145 + Math.random() * 55,
+        r: 6.5 + Math.random() * 2.5,
+        wobble: Math.random() * Math.PI * 2
+      });
+    }
+
+    // Floating Ice Cubes
+    this.iceCubes = [
+      { x: 45, y: 55, s: 18, rot: 0.2 },
+      { x: 80, y: 50, s: 22, rot: -0.3 },
+      { x: 120, y: 58, s: 16, rot: 0.4 }
+    ];
   }
 
   activate(camX) {
@@ -993,19 +1045,44 @@ export class Boss {
   update(dt, camX, player, bullets, particles, onDefeated) {
     if (!this.alive || !this.active) return;
 
+    if (this.strawFlash > 0) {
+      this.strawFlash -= dt;
+    }
+
     if (this.dying) {
       this.dyingTimer -= dt;
-      // Chain explosions all over hull
-      if (Math.random() < 0.6) {
-        sounds.playExplosion(Math.random() < 0.3);
+      // Chain explosions, leaking milk tea and bursting boba!
+      if (Math.random() < 0.7) {
+        sounds.playExplosion(Math.random() < 0.35);
+        // Fire & smoke
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 220,
+          (Math.random() - 0.5) * 220,
+          Math.random() < 0.5 ? '#ff4757' : '#ffa502',
+          6,
+          0.6
+        ));
+        // Leaking tea drops
+        particles.push(new Particle(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          (Math.random() - 0.5) * 160,
+          Math.random() * 180,
+          '#d29054',
+          5,
+          0.5
+        ));
+        // Exploding pearls
         particles.push(new Particle(
           this.x + Math.random() * this.w,
           this.y + Math.random() * this.h,
           (Math.random() - 0.5) * 200,
           (Math.random() - 0.5) * 200,
-          Math.random() < 0.5 ? '#ff4757' : '#ffa502',
-          6,
-          0.6
+          '#1e1010',
+          7,
+          0.7
         ));
       }
       if (this.dyingTimer <= 0) {
@@ -1018,9 +1095,9 @@ export class Boss {
 
     // Entrance glide animation
     if (this.entering) {
-      this.x -= 120 * dt;
-      if (this.x <= camX + 570) {
-        this.x = camX + 570;
+      this.x -= 130 * dt;
+      if (this.x <= camX + 580) {
+        this.x = camX + 580;
         this.entering = false;
       }
       return;
@@ -1029,62 +1106,80 @@ export class Boss {
     this.timer += dt;
 
     // Hover movement
-    const hoverSpeed = this.enraged ? 2.5 : 1.6;
-    const hoverAmp = 55;
+    const hoverSpeed = this.enraged ? 2.8 : 1.8;
+    const hoverAmp = 50;
     this.y = this.baseY + Math.sin(this.timer * hoverSpeed) * hoverAmp;
 
-    // Check enrage state (< 50% HP)
+    // Enrage state check (< 50% HP: 全糖去冰暴怒模式！)
     if (this.hp <= this.maxHp * 0.5 && !this.enraged) {
       this.enraged = true;
       sounds.playWarning();
-      // Enrage shockwave
-      for (let i = 0; i < 30; i++) {
-        particles.push(new Particle(this.x + 50, this.y + this.h / 2, (Math.random() - 0.5) * 300, (Math.random() - 0.5) * 300, '#ff4757', 5, 0.5));
+      // Burst shockwave of boba and steam
+      for (let i = 0; i < 35; i++) {
+        particles.push(new Particle(
+          this.x + this.w / 2,
+          this.y + this.h / 2,
+          (Math.random() - 0.5) * 320,
+          (Math.random() - 0.5) * 320,
+          Math.random() < 0.5 ? '#ff4757' : '#d29054',
+          5.5,
+          0.6
+        ));
       }
     }
 
-    // Attacks
+    // Execute Attacks
     this.attackTimer -= dt;
     if (this.attackTimer <= 0) {
-      this.executeAttack(player, bullets);
-      this.attackTimer = this.enraged ? 1.5 : 2.3;
+      this.executeAttack(player, bullets, particles);
+      this.attackTimer = this.enraged ? 1.4 : 2.2;
     }
   }
 
-  executeAttack(player, bullets) {
+  executeAttack(player, bullets, particles) {
     sounds.playEnemyLaser();
-    const coreX = this.x + 30;
-    const coreY = this.y + this.h / 2;
+    this.strawFlash = 0.25;
+
+    // Straw Tip position (where bullets emerge)
+    const tipX = this.x + 10;
+    const tipY = this.y - 10;
 
     this.attackPhase = (this.attackPhase % 3) + 1;
 
     if (this.attackPhase === 1) {
-      // 5-Way or 7-Way Fan Spread Shot
-      const count = this.enraged ? 7 : 5;
-      const spread = 0.75;
-      const baseAngle = Math.PI; // Leftwards
-      for (let i = 0; i < count; i++) {
-        const offset = ((i / (count - 1)) - 0.5) * spread;
-        const angle = baseAngle + offset;
-        const speed = 160;
-        bullets.push(new Bullet(coreX, coreY, Math.cos(angle) * speed, Math.sin(angle) * speed, true));
+      // 1. 珍珠連射 (Boba Rapid Fire): 4 large boba pearls aimed at player
+      const angle = Math.atan2(player.y - tipY, player.x - tipX);
+      for (let i = 0; i < (this.enraged ? 5 : 3); i++) {
+        setTimeout(() => {
+          if (!this.alive || this.dying) return;
+          sounds.playEnemyLaser();
+          const speed = 190 + i * 20;
+          const spreadA = angle + (Math.random() - 0.5) * 0.25;
+          bullets.push(new Bullet(tipX, tipY, Math.cos(spreadA) * speed, Math.sin(spreadA) * speed, true, 1, 'boba'));
+        }, i * 110);
       }
     } else if (this.attackPhase === 2) {
-      // Aimed Triple Salvo towards player
-      const angle = Math.atan2(player.y - coreY, player.x - coreX);
-      for (let i = -1; i <= 1; i++) {
-        const a = angle + i * 0.18;
-        bullets.push(new Bullet(coreX, coreY + i * 15, Math.cos(a) * 190, Math.sin(a) * 190, true));
+      // 2. 茶波擴散 (Milk Tea Spray): 5-way to 7-way spread of golden tea orbs
+      const count = this.enraged ? 7 : 5;
+      const spread = 0.8;
+      const baseAngle = Math.PI; // Shooting left
+      for (let i = 0; i < count; i++) {
+        const offset = ((i / (count - 1)) - 0.5) * spread;
+        const a = baseAngle + offset;
+        const speed = 170;
+        bullets.push(new Bullet(this.x + 20, this.y + 100, Math.cos(a) * speed, Math.sin(a) * speed, true, 1, 'tea_drop'));
       }
     } else {
-      // High-density barrage or dual plasma beams
-      bullets.push(new Bullet(this.x + 10, this.y + 25, -230, 0, true));
-      bullets.push(new Bullet(this.x + 10, this.y + this.h - 25, -230, 0, true));
+      // 3. 甜度冰塊大爆發 (Sweetness & Ice Storm)
+      // Ice cubes launched at player
+      const angle = Math.atan2(player.y - (this.y + 60), player.x - (this.x + 30));
+      bullets.push(new Bullet(this.x + 20, this.y + 60, Math.cos(angle - 0.2) * 210, Math.sin(angle - 0.2) * 210, true, 1, 'ice_cube'));
+      bullets.push(new Bullet(this.x + 20, this.y + 60, Math.cos(angle + 0.2) * 210, Math.sin(angle + 0.2) * 210, true, 1, 'ice_cube'));
+
       if (this.enraged) {
-        bullets.push(new Bullet(coreX, coreY, -260, 0, true));
-        // Circular 8-way burst
+        // Radial 8-way Boba Burst
         for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
-          bullets.push(new Bullet(coreX, coreY, Math.cos(a) * 140, Math.sin(a) * 140, true));
+          bullets.push(new Bullet(this.x + this.w / 2, this.y + 120, Math.cos(a) * 150, Math.sin(a) * 150, true, 1, 'boba'));
         }
       }
     }
@@ -1095,13 +1190,23 @@ export class Boss {
     this.hp -= amount;
     sounds.playHit();
 
-    // Shield sparks
-    particles.push(new Particle(this.x + 20, this.y + this.h / 2, (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 80, '#00f2fe', 3, 0.2));
+    // Boba splash particles on hit
+    for (let i = 0; i < 4; i++) {
+      particles.push(new Particle(
+        this.x + 40,
+        this.y + 80 + (Math.random() - 0.5) * 60,
+        (Math.random() - 0.5) * 100,
+        (Math.random() - 0.5) * 100,
+        Math.random() < 0.5 ? '#d29054' : '#1e1010',
+        3.5,
+        0.25
+      ));
+    }
 
     if (this.hp <= 0) {
       this.hp = 0;
       this.dying = true;
-      this.dyingTimer = 2.8;
+      this.dyingTimer = 3.0;
       sounds.playExplosion(true);
       return true;
     }
@@ -1114,47 +1219,211 @@ export class Boss {
     ctx.save();
     ctx.translate(sx, this.y);
 
-    // Boss Main Hull: 鯤鵬號 Fortress
-    // Outer Armor Plates
-    ctx.fillStyle = this.enraged ? '#800c0c' : '#1e272e';
-    ctx.strokeStyle = this.enraged ? '#ff4757' : '#00d2d3';
-    ctx.lineWidth = 3;
-
+    // ==========================================
+    // 1. GIANT BOBA STRAW (斜插巨型吸管)
+    // ==========================================
+    ctx.save();
+    ctx.lineWidth = 20;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = this.strawFlash > 0 ? '#ffffff' : (this.enraged ? '#ff4757' : '#9c88ff');
+    ctx.shadowColor = this.strawFlash > 0 ? '#fbc531' : '#8c7ae6';
+    ctx.shadowBlur = this.strawFlash > 0 ? 15 : 6;
     ctx.beginPath();
-    ctx.moveTo(30, this.h / 2); // Front ram
-    ctx.lineTo(80, 10);
-    ctx.lineTo(this.w, 15);
-    ctx.lineTo(this.w - 15, this.h - 15);
-    ctx.lineTo(80, this.h - 10);
+    ctx.moveTo(85, 40); // Base inside cup
+    ctx.lineTo(15, -15); // Slanted tip pointing toward player!
+    ctx.stroke();
+
+    // Straw Diagonal Cut Hole (吸管斜切口)
+    ctx.fillStyle = '#1e1010';
+    ctx.beginPath();
+    ctx.ellipse(15, -15, 9, 6, -0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Inner pearl ready to fire in muzzle
+    if (this.strawFlash > 0) {
+      ctx.fillStyle = '#ffbe76';
+      ctx.beginPath();
+      ctx.arc(15, -15, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // ==========================================
+    // 2. CUP OUTLINE & MILK TEA LIQUID (杯身與奶茶)
+    // ==========================================
+    // Cup dimensions: Top w=150, Bottom w=110, Height=175
+    const topL = 10, topR = 160, topY = 35;
+    const botL = 30, botR = 140, botY = 210;
+
+    // Cup Shadow / Glow
+    ctx.save();
+    ctx.shadowColor = this.enraged ? 'rgba(255, 71, 87, 0.6)' : 'rgba(210, 144, 84, 0.5)';
+    ctx.shadowBlur = 16;
+
+    // Fill Milk Tea (香濃台式奶茶漸層)
+    const teaGrad = ctx.createLinearGradient(0, topY, 0, botY);
+    if (this.enraged) {
+      teaGrad.addColorStop(0, '#e55039');
+      teaGrad.addColorStop(0.5, '#b71540');
+      teaGrad.addColorStop(1, '#6c152a');
+    } else {
+      teaGrad.addColorStop(0, '#f8c291');
+      teaGrad.addColorStop(0.35, '#e17055');
+      teaGrad.addColorStop(0.7, '#d29054');
+      teaGrad.addColorStop(1, '#a05c28');
+    }
+
+    ctx.fillStyle = teaGrad;
+    ctx.beginPath();
+    ctx.moveTo(topL, topY + 10);
+    // Sloshing waves on top
+    const wave = Math.sin(Date.now() * 0.006) * 3;
+    ctx.quadraticCurveTo(85, topY + 10 + wave, topR, topY + 10);
+    ctx.lineTo(botR, botY);
+    ctx.quadraticCurveTo(85, botY + 8, botL, botY);
     ctx.closePath();
+    ctx.fill();
+
+    // ==========================================
+    // 3. TAPIOCA PEARLS (顆顆分明的黑糖珍珠)
+    // ==========================================
+    for (const p of this.pearls) {
+      const wobbleY = Math.sin(Date.now() * 0.004 + p.wobble) * 2;
+      ctx.fillStyle = '#140c0b';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y + wobbleY, p.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Brown edge
+      ctx.strokeStyle = '#3d1f14';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Shiny highlight
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.beginPath();
+      ctx.arc(p.x - p.r * 0.35, p.y + wobbleY - p.r * 0.35, p.r * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // ==========================================
+    // 4. FLOATING ICE CUBES (晶瑩剔透冰塊)
+    // ==========================================
+    for (const ice of this.iceCubes) {
+      ctx.save();
+      ctx.translate(ice.x, ice.y + Math.sin(Date.now() * 0.005 + ice.x) * 3);
+      ctx.rotate(ice.rot);
+      ctx.fillStyle = 'rgba(240, 248, 255, 0.65)';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(-ice.s / 2, -ice.s / 2, ice.s, ice.s);
+      ctx.strokeRect(-ice.s / 2, -ice.s / 2, ice.s, ice.s);
+      ctx.restore();
+    }
+
+    // ==========================================
+    // 5. CUP CLEAR RIM & PLASTIC GLASS EFFECT
+    // ==========================================
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(topL, topY);
+    ctx.lineTo(botL, botY);
+    ctx.quadraticCurveTo(85, botY + 8, botR, botY);
+    ctx.lineTo(topR, topY);
+    ctx.stroke();
+
+    // Cup Highlight reflection (左側透明高光條)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(topL + 12, topY + 20);
+    ctx.lineTo(botL + 10, botY - 15);
+    ctx.stroke();
+
+    // ==========================================
+    // 6. BOSS EYES & EXPRESSION (逗趣又霸氣的面部)
+    // ==========================================
+    const eyeY = 100;
+    if (this.enraged) {
+      // Angry Enraged Eyes (狂暴赤紅眼神)
+      ctx.fillStyle = '#ff3838';
+      ctx.shadowColor = '#ff3838';
+      ctx.shadowBlur = 10;
+
+      // Left eye
+      ctx.beginPath();
+      ctx.moveTo(50, eyeY - 8);
+      ctx.lineTo(75, eyeY + 4);
+      ctx.lineTo(55, eyeY + 6);
+      ctx.closePath();
+      ctx.fill();
+
+      // Right eye
+      ctx.beginPath();
+      ctx.moveTo(120, eyeY - 8);
+      ctx.lineTo(95, eyeY + 4);
+      ctx.lineTo(115, eyeY + 6);
+      ctx.closePath();
+      ctx.fill();
+
+      // Roaring Jagged Mouth (全糖暴怒咆哮嘴)
+      ctx.fillStyle = '#2c0000';
+      ctx.beginPath();
+      ctx.ellipse(85, 128, 18, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ff3838';
+      ctx.stroke();
+    } else {
+      // Normal Cute-Fierce Eyes
+      ctx.fillStyle = '#2d3436';
+      ctx.beginPath();
+      ctx.arc(60, eyeY, 7, 0, Math.PI * 2);
+      ctx.arc(110, eyeY, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eye White Sparkle
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(58, eyeY - 2, 2.5, 0, Math.PI * 2);
+      ctx.arc(108, eyeY - 2, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Boss Mouth
+      ctx.strokeStyle = '#2d3436';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(85, 120, 9, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+
+    // ==========================================
+    // 7. CUP TOP SEALING FILM (封口膜：半糖去冰 / 全糖暴怒)
+    // ==========================================
+    ctx.fillStyle = this.enraged ? '#ff4757' : '#fbc531';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(85, topY, 75, 14, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    // Wings / Heavy Cannons Top & Bottom
-    ctx.fillStyle = '#2f3542';
-    ctx.fillRect(40, -10, 80, 20);
-    ctx.fillRect(40, this.h - 10, 80, 20);
-
-    ctx.fillStyle = '#ff4757';
-    ctx.fillRect(30, -5, 15, 10);
-    ctx.fillRect(30, this.h - 5, 15, 10);
-
-    // Glowing Power Core
-    const pulse = 0.5 + Math.sin(Date.now() * 0.008) * 0.5;
-    ctx.fillStyle = this.enraged ? `rgba(255, 71, 87, ${pulse})` : `rgba(0, 242, 254, ${pulse})`;
-    ctx.shadowColor = this.enraged ? '#ff4757' : '#00f2fe';
-    ctx.shadowBlur = 18;
-    ctx.beginPath();
-    ctx.arc(80, this.h / 2, 22, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Chinese Character "鯤鵬" Insignia on Armor
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 18px "Press Start 2P", monospace, sans-serif';
+    // Sealing text
+    ctx.fillStyle = '#1e272e';
+    ctx.font = 'bold 12px "Press Start 2P", monospace, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('鯤鵬', 140, this.h / 2 + 6);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.enraged ? '全糖去冰！' : '半糖少冰', 85, topY);
 
+    // Cup Brand Label
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 4;
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText('★ 寶島珍奶 ★', 85, 148);
+
+    ctx.restore();
     ctx.restore();
   }
 }

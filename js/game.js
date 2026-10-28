@@ -67,6 +67,14 @@ class Game {
       });
     }
 
+    // Background: Taipei Aerial Photo
+    this.bgImage = new Image();
+    this.bgImage.src = 'assets/taipei_skyline.jpg';
+    this.bgLoaded = false;
+    this.bgImage.onload = () => {
+      this.bgLoaded = true;
+    };
+
     this.setupInputs();
     this.initLevel();
 
@@ -549,38 +557,50 @@ class Game {
   }
 
   drawBackground() {
-    // Sky Gradient: Pacific Deep Indigo to Twilight Sunset
-    const skyGrad = this.ctx.createLinearGradient(0, 0, 0, this.viewH);
-    skyGrad.addColorStop(0, '#0a0a28');
-    skyGrad.addColorStop(0.55, '#1b1b4f');
-    skyGrad.addColorStop(0.85, '#481d58');
-    skyGrad.addColorStop(1, '#8b2958');
-    this.ctx.fillStyle = skyGrad;
-    this.ctx.fillRect(0, 0, this.viewW, this.viewH);
+    if (this.bgLoaded) {
+      // 1. Scrolling Taipei Aerial Photo (台北空拍照)
+      const scrollSpeed = 0.20; // Smooth distant parallax speed
+      const imgH = this.bgImage.height;
+      const imgW = this.bgImage.width;
+      const scaledH = this.viewH;
+      const scaledW = (imgW / imgH) * scaledH;
+      const offset = (this.cameraX * scrollSpeed) % scaledW;
 
-    // Crescent / Glowing Sun
-    this.ctx.save();
-    const sunX = 640 - (this.cameraX * 0.03) % 900;
-    this.ctx.fillStyle = 'rgba(255, 234, 167, 0.85)';
-    this.ctx.shadowColor = '#e17055';
-    this.ctx.shadowBlur = 25;
-    this.ctx.beginPath();
-    this.ctx.arc(sunX, 100, 32, 0, Math.PI * 2);
-    this.ctx.fill();
-    this.ctx.restore();
+      for (let x = -offset; x < this.viewW + scaledW; x += scaledW) {
+        this.ctx.drawImage(this.bgImage, x, 0, scaledW, scaledH);
+      }
 
-    // Twinkling Stars
-    this.ctx.save();
-    for (const s of this.stars) {
-      this.ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
-      this.ctx.fillRect(s.x, s.y, s.size, s.size);
+      // Atmospheric arcade tint overlay (ensures retro bullets & sprites pop with contrast)
+      const tint = this.ctx.createLinearGradient(0, 0, 0, this.viewH);
+      tint.addColorStop(0, 'rgba(8, 12, 32, 0.42)');
+      tint.addColorStop(0.65, 'rgba(12, 10, 28, 0.25)');
+      tint.addColorStop(1, 'rgba(10, 15, 35, 0.45)');
+      this.ctx.fillStyle = tint;
+      this.ctx.fillRect(0, 0, this.viewW, this.viewH);
+
+      // Subtle twinkling stars in the upper sky
+      this.ctx.save();
+      for (const s of this.stars) {
+        if (s.y < 180) {
+          this.ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha * 0.7})`;
+          this.ctx.fillRect(s.x, s.y, s.size, s.size);
+        }
+      }
+      this.ctx.restore();
+    } else {
+      // Fallback procedural sky gradient
+      const skyGrad = this.ctx.createLinearGradient(0, 0, 0, this.viewH);
+      skyGrad.addColorStop(0, '#0a0a28');
+      skyGrad.addColorStop(0.55, '#1b1b4f');
+      skyGrad.addColorStop(0.85, '#481d58');
+      skyGrad.addColorStop(1, '#8b2958');
+      this.ctx.fillStyle = skyGrad;
+      this.ctx.fillRect(0, 0, this.viewW, this.viewH);
+
+      this.drawMountainLayer(0.12, '#120f38', 210, 80);
+      this.drawMountainLayer(0.24, '#1e144a', 260, 60);
+      this.drawMountainLayer(0.40, '#2d1854', 320, 45);
     }
-    this.ctx.restore();
-
-    // Parallax Mountain Range (中央山脈 Taiwan Central Mountain Range silhouette)
-    this.drawMountainLayer(0.12, '#120f38', 210, 80);
-    this.drawMountainLayer(0.24, '#1e144a', 260, 60);
-    this.drawMountainLayer(0.40, '#2d1854', 320, 45);
   }
 
   drawMountainLayer(speed, color, baseY, heightAmp) {
@@ -652,7 +672,7 @@ class Game {
       this.ctx.save();
       const alpha = Math.min(1, this.stageIntroTimer / 1.0);
       this.ctx.globalAlpha = alpha;
-      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
       this.ctx.fillRect(0, this.viewH / 2 - 40, this.viewW, 80);
 
       this.ctx.fillStyle = '#00f2fe';
@@ -660,11 +680,11 @@ class Game {
       this.ctx.shadowBlur = 10;
       this.ctx.font = 'bold 22px monospace';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText('第一關：寶島海岸要塞', this.viewW / 2, this.viewH / 2 - 6);
+      this.ctx.fillText('第一關：寶島風情畫 (LEVEL 1)', this.viewW / 2, this.viewH / 2 - 6);
 
       this.ctx.fillStyle = '#fbc531';
       this.ctx.font = '13px monospace';
-      this.ctx.fillText('STAGE 1: COASTAL FORTRESS', this.viewW / 2, this.viewH / 2 + 20);
+      this.ctx.fillText('STAGE 1: TAIPEI OVERFLIGHT', this.viewW / 2, this.viewH / 2 + 20);
       this.ctx.restore();
     }
 
@@ -672,35 +692,35 @@ class Game {
     if (this.cameraLocked && !this.bossActive && this.bossWarnTimer > 0) {
       this.ctx.save();
       const flash = Math.floor(Date.now() / 150) % 2 === 0;
-      this.ctx.fillStyle = flash ? 'rgba(235, 77, 75, 0.4)' : 'rgba(0, 0, 0, 0.4)';
+      this.ctx.fillStyle = flash ? 'rgba(235, 77, 75, 0.45)' : 'rgba(0, 0, 0, 0.45)';
       this.ctx.fillRect(0, this.viewH / 2 - 45, this.viewW, 90);
 
       this.ctx.fillStyle = '#ff4757';
       this.ctx.shadowColor = '#ff4757';
       this.ctx.shadowBlur = 12;
-      this.ctx.font = 'bold 24px "Press Start 2P", monospace, sans-serif';
+      this.ctx.font = 'bold 22px "Press Start 2P", monospace, sans-serif';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText('⚠ 警報！強敵接近 ⚠', this.viewW / 2, this.viewH / 2 - 8);
+      this.ctx.fillText('⚠ 警報！超巨大珍珠奶茶來襲 ⚠', this.viewW / 2, this.viewH / 2 - 8);
 
       this.ctx.font = '14px monospace';
       this.ctx.fillStyle = '#ffffff';
-      this.ctx.fillText('WARNING: BOSS APPROACHING', this.viewW / 2, this.viewH / 2 + 24);
+      this.ctx.fillText('WARNING: GIANT BOBA APPROACHING', this.viewW / 2, this.viewH / 2 + 24);
       this.ctx.restore();
     }
 
     // Boss Health Bar
     if (this.boss.alive && this.boss.active) {
       this.ctx.save();
-      const barW = 360;
+      const barW = 380;
       const barH = 14;
       const barX = (this.viewW - barW) / 2;
       const barY = 40;
 
       // Label
-      this.ctx.fillStyle = '#ff6b6b';
+      this.ctx.fillStyle = '#ff9f43';
       this.ctx.font = 'bold 12px monospace';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText('BOSS: 寶島巨型空母 - 鯤鵬號', this.viewW / 2, barY - 6);
+      this.ctx.fillText('BOSS: 巨型珍珠奶茶魔王 - 寶島波霸號 (GIANT BOBA)', this.viewW / 2, barY - 6);
 
       // Frame
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
@@ -709,11 +729,12 @@ class Game {
       this.ctx.lineWidth = 1.5;
       this.ctx.strokeRect(barX - 2, barY - 2, barW + 4, barH + 4);
 
-      // Fill
+      // Fill (Caramel Boba Gradient)
       const ratio = Math.max(0, this.boss.hp / this.boss.maxHp);
       const grad = this.ctx.createLinearGradient(barX, barY, barX + barW, barY);
       grad.addColorStop(0, '#ff4757');
-      grad.addColorStop(1, '#ffa502');
+      grad.addColorStop(0.5, '#ffa502');
+      grad.addColorStop(1, '#ffbe76');
       this.ctx.fillStyle = grad;
       this.ctx.fillRect(barX, barY, barW * ratio, barH);
       this.ctx.restore();
@@ -735,7 +756,7 @@ class Game {
       this.ctx.shadowBlur = 8;
       this.ctx.fillStyle = '#fbc531';
       this.ctx.font = '16px monospace';
-      this.ctx.fillText('STAGE 1: 寶島要塞前線 (PROTOTYPE)', this.viewW / 2, 185);
+      this.ctx.fillText('第一關：台北上空 (LEVEL 1)', this.viewW / 2, 185);
 
       this.ctx.fillStyle = '#ffffff';
       this.ctx.font = '14px monospace';
