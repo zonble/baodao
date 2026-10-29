@@ -28,7 +28,7 @@ class SoundSystem {
     this.sfxGain.connect(this.masterGain);
 
     this.bgmGain = this.ctx.createGain();
-    this.bgmGain.gain.value = 0.35;
+    this.bgmGain.gain.value = 0.82;
     this.bgmGain.connect(this.masterGain);
   }
 
@@ -368,7 +368,7 @@ class SoundSystem {
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(2600, t);
 
-      const peakGain = (n.vel || 0.6) * 0.12;
+      const peakGain = (n.vel || 0.6) * 0.24;
       gain.gain.setValueAtTime(peakGain, t);
       gain.gain.exponentialRampToValueAtTime(0.003, t + dur);
 
@@ -382,7 +382,7 @@ class SoundSystem {
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(1600, t);
 
-      const peakGain = (n.vel || 0.5) * 0.17;
+      const peakGain = (n.vel || 0.5) * 0.27;
       gain.gain.setValueAtTime(peakGain, t);
       gain.gain.exponentialRampToValueAtTime(0.004, t + dur);
 
