@@ -2,6 +2,7 @@
 import { LEVEL_DATA, LEVELS, LEVEL_1_DATA, LEVEL_2_DATA } from './levelData.js';
 import { sounds } from './audio.js';
 import { fullscreenButtonLabel, resetInputState } from './mobileExperience.js';
+import { isEntityVisible } from './gameplayRules.js';
 import {
   TILE_SIZE,
   checkAABB,
@@ -473,6 +474,7 @@ class Game {
       // Player Bullets hitting enemies
       if (!b.isEnemy && b.alive) {
         for (const e of activeEnemies) {
+          if (!isEntityVisible(e, this.cameraX, this.viewW)) continue;
           const eBox = { x: e.x, y: e.y, w: e.w, h: e.h };
           const bBox = { x: b.x - b.w / 2, y: b.y - b.h / 2, w: b.w, h: b.h };
           if (checkAABB(bBox, eBox)) {
