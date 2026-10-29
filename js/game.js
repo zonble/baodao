@@ -100,9 +100,9 @@ class Game {
 
     this.setupInputs();
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) sounds.resume();
+      if (!document.hidden) sounds.resume?.();
     });
-    window.addEventListener('pageshow', () => sounds.resume());
+    window.addEventListener('pageshow', () => sounds.resume?.());
     this.initLevel(false);
 
     this.lastTime = performance.now();
@@ -332,7 +332,7 @@ class Game {
     if (startBtn) {
       startBtn.addEventListener('click', () => {
         sounds.ensureContext();
-        sounds.resume();
+        sounds.resume?.();
         if (this.state === 'TITLE' || this.state === 'GAMEOVER' || this.state === 'VICTORY') {
           this.startNewGame();
         } else if (this.state === 'STAGE_CLEAR') {
