@@ -508,7 +508,7 @@ export class Player {
     };
   }
 
-  update(dt, input, camX, viewW, viewH, particles, bullets, enemies) {
+  update(dt, input, camX, viewW, viewH, particles, bullets, enemies, viewportBounds = null) {
     if (!this.alive) return;
 
     if (this.invulnerableTimer > 0) {
@@ -536,10 +536,10 @@ export class Player {
     this.y += this.vy * dt;
 
     // Viewport boundaries
-    const minX = camX + 10;
-    const maxX = camX + viewW - this.w - 10;
-    const minY = 10;
-    const maxY = viewH - this.h - 10;
+    const minX = viewportBounds ? viewportBounds.minX : camX + 10;
+    const maxX = (viewportBounds ? viewportBounds.maxX : camX + viewW - 10) - this.w;
+    const minY = viewportBounds ? viewportBounds.minY : 10;
+    const maxY = (viewportBounds ? viewportBounds.maxY : viewH - 10) - this.h;
 
     if (this.x < minX) this.x = minX;
     if (this.x > maxX) this.x = maxX;

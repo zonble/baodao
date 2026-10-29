@@ -133,6 +133,7 @@ body {
   display: block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+  background: #000;
 }
 
 /* CRT Scanlines Overlay */
@@ -169,10 +170,17 @@ body {
   inset: 0;
   z-index: 4;
   pointer-events: none;
+  opacity: 0.52;
+  transition: opacity 0.15s ease;
 }
 
 .touch-controls.touch-enabled {
   display: flex;
+}
+
+.touch-controls:focus-within,
+.touch-controls:has(button:active) {
+  opacity: 0.86;
 }
 
 .dpad {
@@ -195,15 +203,15 @@ body {
 .dpad-center {
   width: 38px;
   height: 38px;
-  background: #1b2030;
+  background: rgba(27, 32, 48, 0.28);
   border-radius: 4px;
 }
 
 .dpad-btn {
   width: 58px;
   height: 58px;
-  background: #252d42;
-  border: 1px solid #3f4b6d;
+  background: rgba(37, 45, 66, 0.58);
+  border: 1px solid rgba(118, 137, 185, 0.72);
   color: #fff;
   border-radius: 6px;
   font-size: 16px;
@@ -270,7 +278,7 @@ body {
 }
 
 .act-btn.fire-btn {
-  background: #00a8ff;
+  background: rgba(0, 168, 255, 0.58);
   border-color: #00f2fe;
   box-shadow: 0 0 10px rgba(0, 168, 255, 0.5);
 }
@@ -281,7 +289,7 @@ body {
 }
 
 .act-btn.bomb-btn {
-  background: #e84118;
+  background: rgba(232, 65, 24, 0.58);
   border-color: #ff6b81;
   box-shadow: 0 0 10px rgba(232, 65, 24, 0.5);
 }
@@ -513,8 +521,7 @@ body {
     border-radius: 0;
   }
   #gameCanvas {
-    object-fit: contain;
-    background: #000;
+    object-fit: fill;
   }
   .header-actions {
     flex-wrap: nowrap;

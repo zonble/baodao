@@ -2,7 +2,7 @@
 import { LEVEL_DATA, LEVELS, LEVEL_1_DATA, LEVEL_2_DATA } from './levelData.js';
 import { sounds } from './audio.js';
 import { fullscreenButtonLabel, resetInputState } from './mobileExperience.js';
-import { isEntityVisible } from './gameplayRules.js';
+import { isEntityVisible, playerViewportBounds } from './gameplayRules.js';
 import {
   TILE_SIZE,
   checkAABB,
@@ -210,6 +210,13 @@ class Game {
     this.currentLevelIndex = index;
     this.initLevel(false);
     this.state = 'TITLE';
+  }
+
+  getPlayerViewportBounds() {
+    const isMobileLandscape = window.matchMedia?.(
+      '(orientation: landscape) and (max-width: 900px)'
+    ).matches;
+    return playerViewportBounds(this.cameraX, this.viewW, this.viewH, isMobileLandscape);
   }
 
   setupInputs() {
@@ -431,7 +438,17 @@ class Game {
     }
 
     // Update Player
-    this.player.update(dt, this.input, this.cameraX, this.viewW, this.viewH, this.particles, this.bullets, activeEnemies);
+    this.player.update(
+      dt,
+      this.input,
+      this.cameraX,
+      this.viewW,
+      this.viewH,
+      this.particles,
+      this.bullets,
+      activeEnemies,
+      this.getPlayerViewportBounds()
+    );
 
     // Player Terrain Collision (e blocks)
     this.checkPlayerTerrainCollision();
