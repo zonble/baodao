@@ -34,8 +34,18 @@ class SoundSystem {
 
   ensureContext() {
     if (!this.ctx) this.init();
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    if (this.ctx && this.ctx.state !== 'running') {
+      const resumeResult = this.ctx.resume?.();
+      if (resumeResult?.catch) resumeResult.catch(() => {});
+    }
+    return this.ctx;
+  }
+
+  resume() {
+    if (!this.ctx) return;
+    if (this.ctx.state !== 'running') {
+      const resumeResult = this.ctx.resume?.();
+      if (resumeResult?.catch) resumeResult.catch(() => {});
     }
   }
 

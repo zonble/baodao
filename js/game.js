@@ -99,6 +99,10 @@ class Game {
     this.loadStageBackground();
 
     this.setupInputs();
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) sounds.resume();
+    });
+    window.addEventListener('pageshow', () => sounds.resume());
     this.initLevel(false);
 
     this.lastTime = performance.now();
@@ -783,6 +787,24 @@ class Game {
       horizon.addColorStop(1, 'rgba(0, 0, 0, 0)');
       this.ctx.fillStyle = horizon;
       this.ctx.fillRect(0, 0, this.viewW, this.viewH);
+
+      // A restrained perspective grid anchors the photo to the arcade world.
+      this.ctx.save();
+      this.ctx.globalAlpha = 0.18;
+      this.ctx.strokeStyle = theme.glow;
+      this.ctx.lineWidth = 1;
+      this.ctx.beginPath();
+      for (let y = this.viewH * 0.68; y < this.viewH; y += 24) {
+        this.ctx.moveTo(0, y);
+        this.ctx.lineTo(this.viewW, y);
+      }
+      const gridOffset = (this.cameraX * 0.35) % 80;
+      for (let x = -this.viewH - gridOffset; x < this.viewW + this.viewH; x += 80) {
+        this.ctx.moveTo(this.viewW / 2, this.viewH * 0.62);
+        this.ctx.lineTo(x, this.viewH);
+      }
+      this.ctx.stroke();
+      this.ctx.restore();
     } else {
       // Fallback procedural sky gradient
       const skyGrad = this.ctx.createLinearGradient(0, 0, 0, this.viewH);
@@ -894,6 +916,14 @@ class Game {
     this.ctx.moveTo(0, this.viewH - 1);
     this.ctx.lineTo(this.viewW, this.viewH - 1);
     this.ctx.stroke();
+
+    // Moving light bands make the scene feel alive without obscuring bullets.
+    this.ctx.globalAlpha = 0.045;
+    this.ctx.fillStyle = theme.glow;
+    const bandY = (performance.now() * 0.018) % 18;
+    for (let y = bandY; y < this.viewH; y += 18) {
+      this.ctx.fillRect(0, y, this.viewW, 1);
+    }
     this.ctx.restore();
   }
 
