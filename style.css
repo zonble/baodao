@@ -15,8 +15,10 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 12px;
   overflow-x: hidden;
+  overscroll-behavior: none;
 }
 
 #arcade-cabinet {
@@ -113,6 +115,7 @@ body {
   background: #000;
   border-radius: 8px;
   overflow: hidden;
+  touch-action: none;
   box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9), 0 0 15px rgba(0, 0, 0, 0.7);
 }
 
@@ -154,12 +157,12 @@ body {
 /* Virtual Touch Controls */
 .touch-controls {
   display: none;
+  position: absolute;
+  inset: 0;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
-  background: #11141c;
-  border-radius: 8px;
-  border: 1px solid #23293d;
+  padding: 12px 18px;
+  pointer-events: none;
 }
 
 .touch-controls.touch-enabled {
@@ -171,6 +174,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  pointer-events: auto;
 }
 
 .dpad-mid {
@@ -187,8 +191,8 @@ body {
 }
 
 .dpad-btn {
-  width: 44px;
-  height: 44px;
+  width: 58px;
+  height: 58px;
   background: #252d42;
   border: 1px solid #3f4b6d;
   color: #fff;
@@ -199,6 +203,7 @@ body {
   align-items: center;
   cursor: pointer;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .dpad-btn:active {
@@ -209,11 +214,13 @@ body {
 .action-buttons {
   display: flex;
   gap: 14px;
+  align-items: center;
+  pointer-events: auto;
 }
 
 .act-btn {
-  width: 72px;
-  height: 72px;
+  width: 82px;
+  height: 82px;
   border-radius: 50%;
   border: 2px solid;
   font-size: 14px;
@@ -224,6 +231,30 @@ body {
   cursor: pointer;
   touch-action: manipulation;
   color: #fff;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rotate-prompt {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  background: #0b0c10;
+  color: #fff;
+  text-align: center;
+}
+
+.rotate-prompt .rotate-icon {
+  font-size: 48px;
+  color: #00f2fe;
+}
+
+.rotate-prompt small {
+  color: #a4b0be;
 }
 
 .act-btn.fire-btn {
@@ -344,6 +375,82 @@ body {
     font-size: 18px;
   }
   .subtitle {
+    display: none;
+  }
+  .game-header {
+    align-items: stretch;
+  }
+  .header-actions {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .arcade-btn {
+    min-height: 44px;
+    white-space: nowrap;
+  }
+  .game-footer,
+  .game-intro-card {
+    display: none;
+  }
+  .touch-controls {
+    padding: 10px;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 900px) {
+  .rotate-prompt {
+    display: flex;
+  }
+  .touch-controls {
+    display: none !important;
+  }
+}
+
+#arcade-cabinet:fullscreen {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  min-height: 100dvh;
+  padding: 12px;
+  border: 0;
+  border-radius: 0;
+}
+
+#arcade-cabinet:fullscreen .screen-wrapper {
+  flex: 1;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+
+#arcade-cabinet:fullscreen .game-footer,
+#arcade-cabinet:fullscreen .game-intro-card {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  body {
+    padding: 0;
+  }
+  #arcade-cabinet {
+    max-width: none;
+    min-height: 100dvh;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    padding: 8px;
+  }
+  .game-header {
+    flex-wrap: nowrap;
+    min-height: 42px;
+    padding-bottom: 6px;
+  }
+  .header-actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .game-footer,
+  .game-intro-card {
     display: none;
   }
 }

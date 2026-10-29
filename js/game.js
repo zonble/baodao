@@ -1,6 +1,7 @@
 // Main Game Engine for 寶島風情畫 第一關與第二關
 import { LEVEL_DATA, LEVELS, LEVEL_1_DATA, LEVEL_2_DATA } from './levelData.js';
 import { sounds } from './audio.js';
+import { fullscreenButtonLabel, resetInputState } from './mobileExperience.js';
 import {
   TILE_SIZE,
   checkAABB,
@@ -253,6 +254,28 @@ class Game {
       if (code === 'Space' || code === 'KeyJ' || code === 'KeyZ') this.input.shoot = false;
     });
 
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const updateFullscreenButton = () => {
+      if (fullscreenBtn) {
+        fullscreenBtn.textContent = fullscreenButtonLabel(Boolean(document.fullscreenElement));
+      }
+    };
+    if (fullscreenBtn) {
+      fullscreenBtn.addEventListener('click', async () => {
+        try {
+          if (document.fullscreenElement) {
+            await document.exitFullscreen();
+          } else {
+            await document.getElementById('arcade-cabinet').requestFullscreen();
+          }
+        } catch {
+          // Fullscreen can be rejected by browser policy; the normal layout remains usable.
+        }
+        updateFullscreenButton();
+      });
+      document.addEventListener('fullscreenchange', updateFullscreenButton);
+    }
+
     // Mobile / Touch controls binding
     const bindBtn = (id, onDown, onUp) => {
       const el = document.getElementById(id);
@@ -260,16 +283,17 @@ class Game {
       const start = (ev) => {
         ev.preventDefault();
         sounds.ensureContext();
+        el.setPointerCapture?.(ev.pointerId);
         onDown();
       };
       const end = (ev) => {
         ev.preventDefault();
         if (onUp) onUp();
       };
-      el.addEventListener('touchstart', start, { passive: false });
-      el.addEventListener('touchend', end, { passive: false });
-      el.addEventListener('mousedown', start);
-      el.addEventListener('mouseup', end);
+      el.addEventListener('pointerdown', start, { passive: false });
+      el.addEventListener('pointerup', end, { passive: false });
+      el.addEventListener('pointercancel', end, { passive: false });
+      el.addEventListener('lostpointercapture', end, { passive: false });
     };
 
     bindBtn('btn-up', () => this.input.up = true, () => this.input.up = false);
@@ -278,6 +302,10 @@ class Game {
     bindBtn('btn-right', () => this.input.right = true, () => this.input.right = false);
     bindBtn('btn-fire', () => this.input.shoot = true, () => this.input.shoot = false);
     bindBtn('btn-bomb', () => this.triggerBomb());
+
+    const clearInputs = () => resetInputState(this.input);
+    window.addEventListener('blur', clearInputs);
+    document.addEventListener('visibilitychange', clearInputs);
 
     const startBtn = document.getElementById('start-btn');
     if (startBtn) {

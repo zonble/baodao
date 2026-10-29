@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>寶島風情畫 - 臺灣主題復古街機橫向射擊遊戲 (Beautiful Formosa Shmup)</title>
 
   <!-- Primary Meta Tags -->
@@ -72,6 +72,7 @@
         <button id="lvl-toggle-btn" class="arcade-btn">🗺️ 第一關：台北</button>
         <button id="sound-toggle-btn" class="arcade-btn">🔊 音效</button>
         <button id="crt-toggle-btn" class="arcade-btn">📺 CRT 濾鏡</button>
+        <button id="fullscreen-btn" class="arcade-btn">⛶ 全螢幕</button>
         <button id="start-btn" class="arcade-btn primary-btn">▶ 開始遊戲</button>
       </div>
     </header>
@@ -79,25 +80,30 @@
     <main class="screen-wrapper">
       <canvas id="gameCanvas" width="800" height="480" aria-label="寶島風情畫遊戲畫面"></canvas>
       <div id="crt-scanlines" class="crt-overlay active"></div>
-    </main>
+      <div id="rotate-prompt" class="rotate-prompt" role="status">
+        <span class="rotate-icon">↻</span>
+        <strong>請將手機轉為橫向</strong>
+        <small>橫向後即可全螢幕遊玩</small>
+      </div>
 
-    <!-- On-Screen Virtual Controls for Mobile/Touch -->
-    <div id="touch-controls" class="touch-controls">
-      <div class="dpad">
-        <button id="btn-up" class="dpad-btn up">▲</button>
-        <div class="dpad-mid">
-          <button id="btn-left" class="dpad-btn left">◀</button>
-          <div class="dpad-center"></div>
-          <button id="btn-right" class="dpad-btn right">▶</button>
+      <!-- On-Screen Virtual Controls for Mobile/Touch -->
+      <div id="touch-controls" class="touch-controls">
+        <div class="dpad" aria-label="移動控制">
+          <button id="btn-up" class="dpad-btn up" aria-label="向上">▲</button>
+          <div class="dpad-mid">
+            <button id="btn-left" class="dpad-btn left" aria-label="向左">◀</button>
+            <div class="dpad-center"></div>
+            <button id="btn-right" class="dpad-btn right" aria-label="向右">▶</button>
+          </div>
+          <button id="btn-down" class="dpad-btn down" aria-label="向下">▼</button>
         </div>
-        <button id="btn-down" class="dpad-btn down">▼</button>
-      </div>
 
-      <div class="action-buttons">
-        <button id="btn-bomb" class="act-btn bomb-btn">💣 炸彈</button>
-        <button id="btn-fire" class="act-btn fire-btn">⚡ 射擊</button>
+        <div class="action-buttons" aria-label="動作控制">
+          <button id="btn-bomb" class="act-btn bomb-btn" aria-label="使用炸彈">💣</button>
+          <button id="btn-fire" class="act-btn fire-btn" aria-label="射擊">⚡</button>
+        </div>
       </div>
-    </div>
+    </main>
 
     <!-- Instructions / Footer -->
     <footer class="game-footer">
