@@ -34,19 +34,14 @@ class SoundSystem {
 
   ensureContext() {
     if (!this.ctx) this.init();
-    if (this.ctx && this.ctx.state !== 'running') {
-      const resumeResult = this.ctx.resume?.();
-      if (resumeResult?.catch) resumeResult.catch(() => {});
-    }
     return this.ctx;
   }
 
   resume() {
-    if (!this.ctx) return;
-    if (this.ctx.state !== 'running') {
-      const resumeResult = this.ctx.resume?.();
-      if (resumeResult?.catch) resumeResult.catch(() => {});
-    }
+    this.ensureContext();
+    if (!this.ctx || this.ctx.state === 'running') return Promise.resolve();
+    const resumeResult = this.ctx.resume?.();
+    return resumeResult?.catch(() => {}) || Promise.resolve();
   }
 
   toggleMute() {
@@ -294,12 +289,17 @@ class SoundSystem {
   }
 
   // BGM Dispatcher: Prefers TMD Score if available, otherwise falls back to FM Chiptune
-  startBgm(stageIndex = 0) {
+  async startBgm(stageIndex = 0) {
     if (this.bgmPlaying && this.currentStageIndex === stageIndex) return;
     this.stopBgm();
     this.ensureContext();
     this.bgmPlaying = true;
     this.currentStageIndex = stageIndex;
+
+    // Safari may create the context in a suspended state. Do not schedule
+    // notes until the user gesture has successfully resumed it.
+    await this.resume();
+    if (!this.bgmPlaying || this.currentStageIndex !== stageIndex) return;
 
     if (TMD_BGM && TMD_BGM[stageIndex]) {
       this.startTmdBgm(stageIndex);

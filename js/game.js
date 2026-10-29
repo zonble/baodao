@@ -331,6 +331,8 @@ class Game {
     const startBtn = document.getElementById('start-btn');
     if (startBtn) {
       startBtn.addEventListener('click', () => {
+        sounds.ensureContext();
+        sounds.resume();
         if (this.state === 'TITLE' || this.state === 'GAMEOVER' || this.state === 'VICTORY') {
           this.startNewGame();
         } else if (this.state === 'STAGE_CLEAR') {
