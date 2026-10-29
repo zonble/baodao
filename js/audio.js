@@ -290,17 +290,12 @@ class SoundSystem {
   }
 
   // BGM Dispatcher: Prefers TMD Score if available, otherwise falls back to FM Chiptune
-  async startBgm(stageIndex = 0) {
+  startBgm(stageIndex = 0) {
     if (this.bgmPlaying && this.currentStageIndex === stageIndex) return;
     this.stopBgm();
     this.ensureContext();
     this.bgmPlaying = true;
     this.currentStageIndex = stageIndex;
-
-    // Safari may create the context in a suspended state. Do not schedule
-    // notes until the user gesture has successfully resumed it.
-    await this.resume();
-    if (!this.bgmPlaying || this.currentStageIndex !== stageIndex) return;
 
     if (TMD_BGM && TMD_BGM[stageIndex]) {
       this.startTmdBgm(stageIndex);
