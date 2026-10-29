@@ -38,7 +38,8 @@ class SoundSystem {
   }
 
   resume() {
-    this.ensureContext();
+    // Page lifecycle events may fire before any user gesture. Do not create
+    // an AudioContext from those events; Safari blocks that as autoplay.
     if (!this.ctx || this.ctx.state === 'running') return Promise.resolve();
     const resumeResult = this.ctx.resume?.();
     return resumeResult?.catch(() => {}) || Promise.resolve();
