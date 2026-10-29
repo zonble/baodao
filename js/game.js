@@ -330,9 +330,14 @@ class Game {
 
     const startBtn = document.getElementById('start-btn');
     if (startBtn) {
-      startBtn.addEventListener('click', () => {
+      const unlockAudio = () => {
         sounds.ensureContext();
         sounds.resume?.();
+      };
+      startBtn.addEventListener('pointerdown', unlockAudio, { passive: true });
+      startBtn.addEventListener('touchstart', unlockAudio, { passive: true });
+      startBtn.addEventListener('click', () => {
+        unlockAudio();
         if (this.state === 'TITLE' || this.state === 'GAMEOVER' || this.state === 'VICTORY') {
           this.startNewGame();
         } else if (this.state === 'STAGE_CLEAR') {
@@ -343,6 +348,10 @@ class Game {
 
     const soundBtn = document.getElementById('sound-toggle-btn');
     if (soundBtn) {
+      soundBtn.addEventListener('pointerdown', () => {
+        sounds.ensureContext();
+        sounds.resume?.();
+      }, { passive: true });
       soundBtn.addEventListener('click', () => {
         sounds.ensureContext();
         const isMuted = sounds.toggleMute();
