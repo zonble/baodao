@@ -85,6 +85,15 @@ class Game {
       'assets/new_taipei_christmas.jpg',     // 第六關：新北耶誕城 (市民廣場光雕夜景)
       'assets/kaohsiung_85_tower.jpg'        // 第七關：高雄八五大樓 (高雄港與港都天際線)
     ];
+    this.stageThemes = [
+      { top: 'rgba(15, 34, 88, 0.42)', bottom: 'rgba(5, 8, 28, 0.68)', glow: '#00d2d3' },
+      { top: 'rgba(112, 38, 48, 0.32)', bottom: 'rgba(12, 16, 48, 0.64)', glow: '#ff9f43' },
+      { top: 'rgba(10, 54, 88, 0.40)', bottom: 'rgba(3, 12, 32, 0.70)', glow: '#00f2fe' },
+      { top: 'rgba(20, 72, 56, 0.34)', bottom: 'rgba(7, 19, 31, 0.66)', glow: '#7bed9f' },
+      { top: 'rgba(22, 54, 92, 0.38)', bottom: 'rgba(4, 11, 30, 0.70)', glow: '#81ecec' },
+      { top: 'rgba(92, 26, 92, 0.38)', bottom: 'rgba(14, 8, 42, 0.70)', glow: '#e84393' },
+      { top: 'rgba(10, 62, 86, 0.40)', bottom: 'rgba(3, 18, 32, 0.70)', glow: '#fbc531' }
+    ];
     this.bgImage = new Image();
     this.bgLoaded = false;
     this.loadStageBackground();
@@ -735,7 +744,8 @@ class Game {
     // 11. Draw Floating Texts
     for (const ft of this.floatingTexts) ft.draw(this.ctx, this.cameraX);
 
-    // 12. Overlays (Boss warning, HUD, States)
+    // 12. Lighting and overlays (Boss warning, HUD, States)
+    this.drawScreenTreatment();
     this.drawOverlays();
 
     this.ctx.restore();
@@ -755,12 +765,23 @@ class Game {
         this.ctx.drawImage(this.bgImage, x, 0, scaledW, scaledH);
       }
 
-      // Very subtle arcade edge vignette to keep Taipei 101 bright and recognizable
+      const theme = this.stageThemes[this.currentLevelIndex] || this.stageThemes[0];
       const tint = this.ctx.createLinearGradient(0, 0, 0, this.viewH);
-      tint.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
-      tint.addColorStop(0.5, 'rgba(0, 0, 0, 0.05)');
-      tint.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
+      tint.addColorStop(0, theme.top);
+      tint.addColorStop(0.48, 'rgba(0, 0, 0, 0.04)');
+      tint.addColorStop(1, theme.bottom);
       this.ctx.fillStyle = tint;
+      this.ctx.fillRect(0, 0, this.viewW, this.viewH);
+
+      // Soft atmospheric light gives the photo a consistent arcade grade.
+      const horizon = this.ctx.createRadialGradient(
+        this.viewW * 0.58, this.viewH * 0.60, 8,
+        this.viewW * 0.58, this.viewH * 0.60, this.viewW * 0.72
+      );
+      horizon.addColorStop(0, `${theme.glow}22`);
+      horizon.addColorStop(0.55, `${theme.glow}08`);
+      horizon.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      this.ctx.fillStyle = horizon;
       this.ctx.fillRect(0, 0, this.viewW, this.viewH);
     } else {
       // Fallback procedural sky gradient
@@ -811,8 +832,17 @@ class Game {
 
           // Stylized Sci-Fi Cyber Fortress Rock Blocks
           this.ctx.save();
-          this.ctx.fillStyle = '#222f3e';
+          this.ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+          this.ctx.shadowBlur = 8;
+          this.ctx.shadowOffsetY = 4;
+          const blockGrad = this.ctx.createLinearGradient(sx, sy, sx, sy + TILE_SIZE);
+          blockGrad.addColorStop(0, '#334b5c');
+          blockGrad.addColorStop(0.5, '#243746');
+          blockGrad.addColorStop(1, '#172532');
+          this.ctx.fillStyle = blockGrad;
           this.ctx.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
+          this.ctx.shadowColor = 'transparent';
+          this.ctx.shadowBlur = 0;
 
           // Inner bevel
           this.ctx.fillStyle = '#2e3d49';
@@ -832,10 +862,39 @@ class Game {
           this.ctx.lineWidth = 1.5;
           this.ctx.strokeRect(sx, sy, TILE_SIZE, TILE_SIZE);
 
+          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+          this.ctx.fillRect(sx + 5, sy + 5, TILE_SIZE - 10, 2);
+          this.ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+          this.ctx.fillRect(sx + 5, sy + TILE_SIZE - 7, TILE_SIZE - 10, 2);
+
           this.ctx.restore();
         }
       }
     }
+  }
+
+  drawScreenTreatment() {
+    const theme = this.stageThemes[this.currentLevelIndex] || this.stageThemes[0];
+    this.ctx.save();
+
+    const edge = this.ctx.createRadialGradient(
+      this.viewW / 2, this.viewH / 2, this.viewH * 0.28,
+      this.viewW / 2, this.viewH / 2, this.viewW * 0.70
+    );
+    edge.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    edge.addColorStop(0.72, 'rgba(0, 0, 0, 0.05)');
+    edge.addColorStop(1, 'rgba(0, 0, 0, 0.52)');
+    this.ctx.fillStyle = edge;
+    this.ctx.fillRect(0, 0, this.viewW, this.viewH);
+
+    this.ctx.globalAlpha = 0.16;
+    this.ctx.strokeStyle = theme.glow;
+    this.ctx.lineWidth = 1;
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, this.viewH - 1);
+    this.ctx.lineTo(this.viewW, this.viewH - 1);
+    this.ctx.stroke();
+    this.ctx.restore();
   }
 
   drawOverlays() {
@@ -1216,8 +1275,13 @@ class Game {
   drawHUD() {
     this.ctx.save();
     // Top Bar Background
-    this.ctx.fillStyle = 'rgba(15, 18, 30, 0.75)';
+    const hudGrad = this.ctx.createLinearGradient(0, 0, 0, 32);
+    hudGrad.addColorStop(0, 'rgba(7, 14, 30, 0.94)');
+    hudGrad.addColorStop(1, 'rgba(15, 18, 30, 0.62)');
+    this.ctx.fillStyle = hudGrad;
     this.ctx.fillRect(0, 0, this.viewW, 32);
+    this.ctx.fillStyle = 'rgba(0, 242, 254, 0.42)';
+    this.ctx.fillRect(0, 31, this.viewW, 1);
 
     this.ctx.font = 'bold 13px monospace';
     this.ctx.textBaseline = 'middle';
