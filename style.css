@@ -337,18 +337,6 @@ body {
   border: 1px solid #3742fa;
 }
 
-.stage-info {
-  color: #747d8c;
-  font-size: 12px;
-}
-
-.stage-info code {
-  color: #fbc531;
-  background: #1b2030;
-  padding: 1px 4px;
-  border-radius: 3px;
-}
-
 /* SEO / Game Guide Accordion */
 .game-intro-card {
   margin-top: 8px;
