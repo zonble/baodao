@@ -5,6 +5,12 @@
   padding: 0;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html,
+body {
+  touch-action: manipulation;
 }
 
 body {
@@ -82,6 +88,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+  touch-action: manipulation;
 }
 
 .arcade-btn:hover {
