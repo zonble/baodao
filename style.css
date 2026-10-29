@@ -22,6 +22,7 @@ body {
 }
 
 #arcade-cabinet {
+  position: relative;
   width: 100%;
   max-width: 900px;
   background: #151821;
@@ -159,9 +160,7 @@ body {
   display: none;
   position: absolute;
   inset: 0;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 18px;
+  z-index: 4;
   pointer-events: none;
 }
 
@@ -170,6 +169,9 @@ body {
 }
 
 .dpad {
+  position: absolute;
+  left: calc(env(safe-area-inset-left) + 12px);
+  bottom: calc(env(safe-area-inset-bottom) + 12px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -212,6 +214,9 @@ body {
 }
 
 .action-buttons {
+  position: absolute;
+  right: calc(env(safe-area-inset-right) + 12px);
+  bottom: calc(env(safe-area-inset-bottom) + 12px);
   display: flex;
   gap: 14px;
   align-items: center;
@@ -393,12 +398,34 @@ body {
   .game-intro-card {
     display: none;
   }
-  .touch-controls {
-    padding: 10px;
-  }
 }
 
 @media (orientation: portrait) and (max-width: 900px) {
+  body {
+    width: 100vw;
+    height: 100dvh;
+    min-height: 100dvh;
+    padding: 0;
+    overflow: hidden;
+  }
+  #arcade-cabinet {
+    width: 100vw;
+    height: 100dvh;
+    min-height: 100dvh;
+    max-width: none;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+  }
+  .game-header {
+    display: none;
+  }
+  .screen-wrapper {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    border-radius: 0;
+  }
   .rotate-prompt {
     display: flex;
   }
@@ -428,26 +455,62 @@ body {
   display: none;
 }
 
-@media (orientation: landscape) and (max-height: 600px) {
+@media (orientation: landscape) and (max-width: 900px) {
   body {
+    width: 100vw;
+    height: 100dvh;
+    min-height: 100dvh;
     padding: 0;
+    overflow: hidden;
   }
   #arcade-cabinet {
+    width: 100vw;
+    height: 100dvh;
     max-width: none;
     min-height: 100dvh;
     border-radius: 0;
-    border-left: 0;
-    border-right: 0;
-    padding: 8px;
+    border: 0;
+    padding: 0;
+    gap: 0;
   }
   .game-header {
-    flex-wrap: nowrap;
-    min-height: 42px;
-    padding-bottom: 6px;
+    position: absolute;
+    z-index: 10;
+    top: env(safe-area-inset-top);
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    min-height: 0;
+    border: 0;
+    padding: 0;
+    pointer-events: none;
+  }
+  .title-group,
+  #lvl-toggle-btn,
+  #sound-toggle-btn,
+  #crt-toggle-btn {
+    display: none;
+  }
+  .header-actions {
+    justify-content: flex-end;
+    pointer-events: auto;
+  }
+  .header-actions .arcade-btn {
+    min-height: 36px;
+    padding: 5px 9px;
+    font-size: 12px;
+  }
+  .screen-wrapper {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    border-radius: 0;
+  }
+  #gameCanvas {
+    object-fit: contain;
+    background: #000;
   }
   .header-actions {
     flex-wrap: nowrap;
-    overflow-x: auto;
   }
   .game-footer,
   .game-intro-card {
